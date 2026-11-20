@@ -105,7 +105,7 @@ def _need(cfg: dict, *keys: str) -> None:
 # ---------- 3-legged login ----------
 
 @router.get("/integrations/aps/login")
-def login(request: Request, project_id: Optional[uuid.UUID] = None, json: bool = False, conn=Depends(get_conn)):
+def login(request: Request, project_id: Optional[uuid.UUID] = None, json: bool = False, conn=Depends(get_conn, scope="function")):
     cfg = _cfg(request)
     if project_id:
         get_project(conn, project_id)
@@ -124,7 +124,7 @@ def login(request: Request, project_id: Optional[uuid.UUID] = None, json: bool =
 
 @public_router.get("/integrations/aps/callback")
 def callback(request: Request, code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None,
-             conn=Depends(get_conn)):
+             conn=Depends(get_conn, scope="function")):
     if error or not code or not state:
         raise HTTPException(400, f"APS login failed: {error or 'missing code/state'}")
     row = conn.execute("DELETE FROM oauth_states WHERE state = %s AND provider = %s RETURNING *", (state, PROVIDER)).fetchone()
@@ -140,7 +140,7 @@ def callback(request: Request, code: Optional[str] = None, state: Optional[str] 
 
 
 @router.get("/integrations/aps/status")
-def status(request: Request, project_id: Optional[uuid.UUID] = None, conn=Depends(get_conn)):
+def status(request: Request, project_id: Optional[uuid.UUID] = None, conn=Depends(get_conn, scope="function")):
     cfg = _cfg(request)
     row = aps_tokens.find_three_legged(conn, project_id)
     out = {"configured": bool(cfg.client_id and cfg.callback_url), "has_client_secret": bool(cfg.client_secret),
@@ -170,13 +170,13 @@ class ApsConfigIn(BaseModel):
 
 
 @router.get("/projects/{pid}/aps/config")
-def read_config(pid: uuid.UUID, conn=Depends(get_conn)):
+def read_config(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return get_config(conn, pid)
 
 
 @router.put("/projects/{pid}/aps/config")
-def write_config(pid: uuid.UUID, body: ApsConfigIn, conn=Depends(get_conn)):
+def write_config(pid: uuid.UUID, body: ApsConfigIn, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     cfg = {**get_config(conn, pid), **body.model_dump(exclude_none=True)}
     conn.execute("INSERT INTO project_integrations (project_id, provider, config) VALUES (%s,%s,%s) "
@@ -187,19 +187,19 @@ def write_config(pid: uuid.UUID, body: ApsConfigIn, conn=Depends(get_conn)):
 
 @router.get("/integrations/aps/hubs")
 @_wrap
-def list_hubs(request: Request, conn=Depends(get_conn)):
+def list_hubs(request: Request, conn=Depends(get_conn, scope="function")):
     return DataManagement(_session(request, conn)).hubs()
 
 
 @router.get("/integrations/aps/hubs/{hub_id}/projects")
 @_wrap
-def list_aps_projects(hub_id: str, request: Request, conn=Depends(get_conn)):
+def list_aps_projects(hub_id: str, request: Request, conn=Depends(get_conn, scope="function")):
     return DataManagement(_session(request, conn)).projects(hub_id)
 
 
 @router.get("/projects/{pid}/aps/models")
 @_wrap
-def pick_models(pid: uuid.UUID, request: Request, folder_id: Optional[str] = None, conn=Depends(get_conn)):
+def pick_models(pid: uuid.UUID, request: Request, folder_id: Optional[str] = None, conn=Depends(get_conn, scope="function")):
     """Design models (rvt/ifc/nwd/nwc/dwg) under a folder (default: the project's top folders)."""
     get_project(conn, pid)
     cfg = get_config(conn, pid)
@@ -277,7 +277,7 @@ def _import(conn, request: Request, pid, body: ImportModelIn, *, link_only_updat
 
 @router.post("/projects/{pid}/aps/import-model", status_code=201)
 @_wrap
-def import_model(pid: uuid.UUID, body: ImportModelIn, request: Request, conn=Depends(get_conn)):
+def import_model(pid: uuid.UUID, body: ImportModelIn, request: Request, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return _import(conn, request, pid, body)
 
@@ -286,7 +286,7 @@ def import_model(pid: uuid.UUID, body: ImportModelIn, request: Request, conn=Dep
 
 @router.post("/projects/{pid}/aps/sync-locations")
 @_wrap
-def sync_locations(pid: uuid.UUID, request: Request, conn=Depends(get_conn)):
+def sync_locations(pid: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     cfg = get_config(conn, pid)
     _need(cfg, "aps_project_id")
@@ -350,7 +350,7 @@ class PushIssuesIn(BaseModel):
 
 @router.post("/projects/{pid}/aps/push-issues")
 @_wrap
-def push_issues(pid: uuid.UUID, request: Request, body: PushIssuesIn | None = None, conn=Depends(get_conn)):
+def push_issues(pid: uuid.UUID, request: Request, body: PushIssuesIn | None = None, conn=Depends(get_conn, scope="function")):
     body = body or PushIssuesIn()
     get_project(conn, pid)
     cfg = get_config(conn, pid)
@@ -425,7 +425,7 @@ class SyncAssetsIn(BaseModel):
 
 @router.post("/projects/{pid}/aps/sync-assets")
 @_wrap
-def sync_assets(pid: uuid.UUID, request: Request, body: SyncAssetsIn | None = None, conn=Depends(get_conn)):
+def sync_assets(pid: uuid.UUID, request: Request, body: SyncAssetsIn | None = None, conn=Depends(get_conn, scope="function")):
     body = body or SyncAssetsIn()
     get_project(conn, pid)
     cfg = get_config(conn, pid)

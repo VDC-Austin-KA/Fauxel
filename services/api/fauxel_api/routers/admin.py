@@ -15,7 +15,7 @@ class KeyIn(BaseModel):
 
 
 @router.post("/api-keys", status_code=201, dependencies=[Depends(auth.require_admin)])
-def create_api_key(body: KeyIn, request: Request, conn=Depends(get_conn)):
+def create_api_key(body: KeyIn, request: Request, conn=Depends(get_conn, scope="function")):
     """The plaintext key is returned once; only salt + sha256 is stored."""
     key_id, key = auth.create_key(conn, body.name, request.app.state.settings.key_salt)
     return {"id": key_id, "name": body.name, "key": key}

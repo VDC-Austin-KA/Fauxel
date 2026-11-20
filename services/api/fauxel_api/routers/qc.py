@@ -41,7 +41,7 @@ class DeviationPatch(BaseModel):
 
 
 @router.get("/projects/{pid}/deviations")
-def list_deviations(pid: uuid.UUID, status: Optional[Literal["open", "closed"]] = None, conn=Depends(get_conn)):
+def list_deviations(pid: uuid.UUID, status: Optional[Literal["open", "closed"]] = None, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return with_attachments(conn, conn.execute(
         "SELECT d.*, e.name AS element_name, e.trade FROM deviations d LEFT JOIN bim_elements e USING (element_uid) "
@@ -49,7 +49,7 @@ def list_deviations(pid: uuid.UUID, status: Optional[Literal["open", "closed"]] 
 
 
 @router.post("/projects/{pid}/deviations", status_code=201)
-def create_deviation(pid: uuid.UUID, body: DeviationIn, conn=Depends(get_conn)):
+def create_deviation(pid: uuid.UUID, body: DeviationIn, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     dx, dy, dz, severity = body.dx, body.dy, body.dz, body.severity
     if body.element_uid:
@@ -77,7 +77,7 @@ def create_deviation(pid: uuid.UUID, body: DeviationIn, conn=Depends(get_conn)):
 
 
 @router.patch("/deviations/{did}")
-def patch_deviation(did: uuid.UUID, body: DeviationPatch, conn=Depends(get_conn)):
+def patch_deviation(did: uuid.UUID, body: DeviationPatch, conn=Depends(get_conn, scope="function")):
     changes = body.model_dump(exclude_none=True)
     if not changes:
         raise HTTPException(422, "nothing to update")
@@ -89,7 +89,7 @@ def patch_deviation(did: uuid.UUID, body: DeviationPatch, conn=Depends(get_conn)
 
 
 @router.get("/deviations/{did}")
-def read_deviation(did: uuid.UUID, conn=Depends(get_conn)):
+def read_deviation(did: uuid.UUID, conn=Depends(get_conn, scope="function")):
     row = conn.execute("SELECT d.*, e.name AS element_name, e.trade FROM deviations d LEFT JOIN bim_elements e USING (element_uid) "
                        "WHERE d.id = %s", (did,)).fetchone()
     if not row:
@@ -145,7 +145,7 @@ class AttachmentFromKey(BaseModel):
 
 
 @router.post("/deviations/{did}/attachments", status_code=201)
-async def create_attachments(did: uuid.UUID, request: Request, conn=Depends(get_conn)):
+async def create_attachments(did: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     """Multipart `file`/`files` images, or JSON {upload_key} of a completed `evidence` upload (large photos skip the 100 MB proxy limit)."""
     dev = conn.execute("SELECT id, project_id FROM deviations WHERE id = %s", (did,)).fetchone()
     if not dev:
@@ -171,14 +171,14 @@ async def create_attachments(did: uuid.UUID, request: Request, conn=Depends(get_
 
 
 @router.get("/deviations/{did}/attachments")
-def list_attachments(did: uuid.UUID, conn=Depends(get_conn)):
+def list_attachments(did: uuid.UUID, conn=Depends(get_conn, scope="function")):
     if not conn.execute("SELECT 1 FROM deviations WHERE id = %s", (did,)).fetchone():
         raise HTTPException(404, "deviation not found")
     return with_attachments(conn, [{"id": did}])[0]["attachments"]
 
 
 @router.get("/attachments/{aid}/file")
-def attachment_file(aid: uuid.UUID, request: Request, conn=Depends(get_conn)):
+def attachment_file(aid: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     a = conn.execute("SELECT key, content_type FROM deviation_attachments WHERE id = %s", (aid,)).fetchone()
     if not a:
         raise HTTPException(404, "attachment not found")
@@ -199,7 +199,7 @@ class NoteIn(BaseModel):
 
 
 @router.post("/projects/{pid}/notes", status_code=201)
-def create_note(pid: uuid.UUID, body: NoteIn, request: Request, conn=Depends(get_conn)):
+def create_note(pid: uuid.UUID, body: NoteIn, request: Request, conn=Depends(get_conn, scope="function")):
     """Field QC note pinned at (x, y) m on a level: stored as a low-severity `note` deviation (optional photo from an evidence upload)."""
     get_project(conn, pid)
     storage = request.app.state.storage
@@ -218,7 +218,7 @@ PRIORITY = {"low": "Low", "medium": "Normal", "high": "High", "critical": "Criti
 
 
 @router.get("/projects/{pid}/issues.bcf")
-def issues_bcf(pid: uuid.UUID, request: Request, conn=Depends(get_conn)):
+def issues_bcf(pid: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     proj = get_project(conn, pid)
     try:
         from ..qc.bcf import build_bcf_zip

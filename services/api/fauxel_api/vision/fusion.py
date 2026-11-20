@@ -19,10 +19,15 @@ def _rung_for_state(ladder, state):
     return next((r for r in ladder if r["state"] == state), ladder[0])
 
 
+RANK = {"NOT_STARTED": 0, "FRAMED_OR_ROUGHED": 1, "INSTALLED": 2, "INSULATED_OR_FINISHED": 3}
+
+
 def fuse(observations, current, ladder, rework: bool = False) -> dict:
     cur_pct = float(current.get("percent", 0) or 0)
     held = {"state": current.get("state", ladder[0]["state"]), "percent": cur_pct,
             "confidence": float(current.get("confidence", 0) or 0)}
+    if held["state"] == "DEVIATION_FLAGGED" and not rework:
+        return held  # a flagged deviation stays until a person clears it or rework is declared
     usable = [o for o in observations if float(o.get("occlusion_ratio", 0) or 0) <= OCCLUDED]
     dev = [o for o in usable if o.get("state") == "DEVIATION_FLAGGED"]
     if dev:
@@ -44,7 +49,8 @@ def fuse(observations, current, ladder, rework: bool = False) -> dict:
         noisy_or *= 1 - min(w, 1.0)
     conf = (1 - noisy_or) * sum(weights[pct]) / total
     if not rework and pct < cur_pct:
-        floor = max((r for r in ladder if r["percent"] <= cur_pct), key=lambda r: r["percent"])
-        return {"state": floor["state"], "percent": cur_pct, "confidence": held["confidence"]}
+        return held  # monotonic: never lower percent or state
     rung = next(r for r in ladder if r["percent"] == pct)
+    if not rework and RANK.get(rung["state"], 0) < RANK.get(held["state"], 0):
+        return {"state": held["state"], "percent": float(pct), "confidence": round(conf, 4)}  # state never drops
     return {"state": rung["state"], "percent": float(pct), "confidence": round(conf, 4)}

@@ -63,7 +63,7 @@ class SpeckleTokenIn(BaseModel):
 
 
 @router.put("/integrations/speckle/token", status_code=204)
-def store_token(body: SpeckleTokenIn, request: Request, conn=Depends(get_conn)):
+def store_token(body: SpeckleTokenIn, request: Request, conn=Depends(get_conn, scope="function")):
     host = _host(body.server_url)
     if not host:
         raise HTTPException(422, "bad server_url")
@@ -99,7 +99,7 @@ class SpeckleImportIn(BaseModel):
 
 
 @router.post("/projects/{pid}/speckle/import", status_code=201)
-def speckle_import(pid: uuid.UUID, body: SpeckleImportIn, request: Request, conn=Depends(get_conn)):
+def speckle_import(pid: uuid.UUID, body: SpeckleImportIn, request: Request, conn=Depends(get_conn, scope="function")):
     _require_pkg()
     get_project(conn, pid)
     token = _token(conn, request, body.server_url, body.token)
@@ -147,7 +147,7 @@ class SpecklePushIn(BaseModel):
 
 
 @router.post("/projects/{pid}/speckle/push-progress")
-def speckle_push_progress(pid: uuid.UUID, body: SpecklePushIn, request: Request, conn=Depends(get_conn)):
+def speckle_push_progress(pid: uuid.UUID, body: SpecklePushIn, request: Request, conn=Depends(get_conn, scope="function")):
     """Publishes a new version: one box-proxy object per element (applicationId = IFC GlobalId, else Revit UniqueId) with
     `fauxel_status`, `fauxel_percent_complete`, `fauxel_color`, `fauxel_confidence`, `fauxel_last_verified` and a Speckle color."""
     _require_pkg()
@@ -180,7 +180,7 @@ def speckle_push_progress(pid: uuid.UUID, body: SpecklePushIn, request: Request,
 
 @router.post("/projects/{pid}/bcf/import")
 async def bcf_import(pid: uuid.UUID, request: Request, file: UploadFile = File(...), dry_run: bool = Form(False),
-                     require_match: bool = Form(False), conn=Depends(get_conn)):
+                     require_match: bool = Form(False), conn=Depends(get_conn, scope="function")):
     """Imports BCF 2.1 / 3.0 topics as deviations, matched to elements by IfcGuid. Re-importing the same topic updates it."""
     _require_pkg()
     get_project(conn, pid)
@@ -229,7 +229,7 @@ async def bcf_import(pid: uuid.UUID, request: Request, file: UploadFile = File(.
 
 
 @router.get("/projects/{pid}/issues.bcf21")
-def issues_bcf21(pid: uuid.UUID, request: Request, conn=Depends(get_conn)):
+def issues_bcf21(pid: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     """BCF 2.1 zip of open deviations. Built from the BCF 3.0 export (same camera/snapshot logic), re-serialised as 2.1; the
     selected element's IfcGuid is added here (the 3.0 writer reads `element_guids`, the QC route supplies `element_ifc_guid`)."""
     _require_pkg()

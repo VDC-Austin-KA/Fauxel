@@ -46,7 +46,7 @@ def _part_url(request: Request, storage, row: dict, n: int) -> str:
 
 
 @router.post("/uploads", status_code=201)
-def create_upload(body: UploadIn, request: Request, conn=Depends(get_conn)):
+def create_upload(body: UploadIn, request: Request, conn=Depends(get_conn, scope="function")):
     s, storage = request.app.state.settings, request.app.state.storage
     get_project(conn, body.project_id)
     up.validate_request(s, body.kind, body.filename, body.size, body.content_type)
@@ -63,7 +63,7 @@ def create_upload(body: UploadIn, request: Request, conn=Depends(get_conn)):
 
 
 @router.get("/uploads/{uid}")
-def read_upload_state(uid: uuid.UUID, request: Request, conn=Depends(get_conn)):
+def read_upload_state(uid: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     """Resume support: parts already stored (S3 ListParts) and fresh URLs for the missing ones."""
     storage = request.app.state.storage
     row = _get(conn, uid)
@@ -80,7 +80,7 @@ def read_upload_state(uid: uuid.UUID, request: Request, conn=Depends(get_conn)):
 
 
 @router.put("/uploads/{uid}/parts/{n}")
-async def put_part(uid: uuid.UUID, n: int, request: Request, conn=Depends(get_conn)):
+async def put_part(uid: uuid.UUID, n: int, request: Request, conn=Depends(get_conn, scope="function")):
     """API-side part upload (fs backend / fully local use). Parts are at most part_size (<= 64 MB)."""
     storage = request.app.state.storage
     row = _get(conn, uid)
@@ -103,7 +103,7 @@ async def put_part(uid: uuid.UUID, n: int, request: Request, conn=Depends(get_co
 
 
 @router.post("/uploads/{uid}/complete")
-def complete_upload(uid: uuid.UUID, body: CompleteIn, request: Request, conn=Depends(get_conn)):
+def complete_upload(uid: uuid.UUID, body: CompleteIn, request: Request, conn=Depends(get_conn, scope="function")):
     storage = request.app.state.storage
     row = _get(conn, uid)
     if row["status"] == "complete":
@@ -131,7 +131,7 @@ def complete_upload(uid: uuid.UUID, body: CompleteIn, request: Request, conn=Dep
 
 
 @router.delete("/uploads/{uid}", status_code=204)
-def abort_upload(uid: uuid.UUID, request: Request, conn=Depends(get_conn)):
+def abort_upload(uid: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     row = _get(conn, uid)
     if row["status"] == "complete":
         raise HTTPException(409, "upload already complete")
@@ -147,7 +147,7 @@ def abort_upload(uid: uuid.UUID, request: Request, conn=Depends(get_conn)):
 # ---------- jobs ----------
 
 @router.get("/jobs/{jid}")
-def read_job(jid: uuid.UUID, conn=Depends(get_conn)):
+def read_job(jid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     row = conn.execute("SELECT id, project_id, kind, status, attempts, result, error, created_at, finished_at FROM jobs WHERE id = %s", (jid,)).fetchone()
     if not row:
         raise HTTPException(404, "job not found")
@@ -161,7 +161,7 @@ class UploadKeyIn(BaseModel):
 
 
 @router.post("/projects/{pid}/schedule/from-upload", status_code=201)
-async def schedule_from_upload(pid: uuid.UUID, body: UploadKeyIn, request: Request, conn=Depends(get_conn)):
+async def schedule_from_upload(pid: uuid.UUID, body: UploadKeyIn, request: Request, conn=Depends(get_conn, scope="function")):
     """Same as POST /projects/{pid}/schedule, reading the P6 / MS Project file from storage."""
     from . import progress
 

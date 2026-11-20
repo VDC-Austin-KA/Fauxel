@@ -22,7 +22,7 @@ MAX_DIST_M = 15.0
 
 @router.get("/projects/{pid}/training-samples")
 def training_samples(pid: uuid.UUID, since: Optional[datetime] = None, source: Literal["human", "cv", "import"] = "human",
-                     limit: int = Query(1000, ge=1, le=20000), conn=Depends(get_conn)):
+                     limit: int = Query(1000, ge=1, le=20000), conn=Depends(get_conn, scope="function")):
     """Verified observations that point at a frame, with the element's trade and the projected polygon/bbox
     (from the CV detection of the same frame/element; null when none exists). Fetch the image with GET /training/crop."""
     get_project(conn, pid)
@@ -39,7 +39,7 @@ def training_samples(pid: uuid.UUID, since: Optional[datetime] = None, source: L
 
 @router.get("/training/crop")
 def training_crop(request: Request, frame_id: uuid.UUID, element_uid: uuid.UUID, size: int = Query(384, ge=64, le=1024),
-                  conn=Depends(get_conn)):
+                  conn=Depends(get_conn, scope="function")):
     """JPEG tangent-plane (rectilinear, level) crop of the panorama centred on the element."""
     f = conn.execute(
         "SELECT f.*, n.x, n.y, n.z, n.qw, n.qx, n.qy, n.qz FROM panorama_frames f "

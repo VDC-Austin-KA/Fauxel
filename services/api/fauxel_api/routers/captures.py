@@ -67,7 +67,7 @@ def _default_source(names: list[str], source) -> str:
 
 
 @router.post("/projects/{pid}/captures", status_code=201)
-async def create_capture(pid: uuid.UUID, request: Request, conn=Depends(get_conn)):
+async def create_capture(pid: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     """Multipart (stills / short clips, synchronous 201) or JSON {upload_keys} / raw .insv/.insp (queued, 202)."""
     s = request.app.state.settings
     storage = request.app.state.storage
@@ -117,13 +117,13 @@ CAPTURE_SELECT = ("SELECT c.*, (SELECT count(*) FROM panorama_frames f WHERE f.c
 
 
 @router.get("/projects/{pid}/captures")
-def list_captures(pid: uuid.UUID, conn=Depends(get_conn)):
+def list_captures(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return conn.execute(f"{CAPTURE_SELECT} WHERE c.project_id = %s ORDER BY c.captured_at DESC", (pid,)).fetchall()
 
 
 @router.get("/captures/{cid}")
-def read_capture(cid: uuid.UUID, conn=Depends(get_conn)):
+def read_capture(cid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     row = conn.execute(f"{CAPTURE_SELECT} WHERE c.id = %s", (cid,)).fetchone()
     if not row:
         raise HTTPException(404, "capture not found")
@@ -131,7 +131,7 @@ def read_capture(cid: uuid.UUID, conn=Depends(get_conn)):
 
 
 @router.get("/captures/{cid}/frames")
-def list_frames(cid: uuid.UUID, conn=Depends(get_conn)):
+def list_frames(cid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_capture(conn, cid)
     rows = conn.execute(
         "SELECT f.id, f.seq, f.width, f.height, f.blur_score, f.t_sec, f.taken_at, f.node_id, n.x, n.y, n.z, n.qw, n.qx, n.qy, n.qz "
@@ -146,7 +146,7 @@ def list_frames(cid: uuid.UUID, conn=Depends(get_conn)):
 
 
 @router.get("/frames/{fid}/image")
-def frame_image(fid: uuid.UUID, request: Request, w: int = Query(media.PREVIEW_W, ge=32, le=16384), conn=Depends(get_conn)):
+def frame_image(fid: uuid.UUID, request: Request, w: int = Query(media.PREVIEW_W, ge=32, le=16384), conn=Depends(get_conn, scope="function")):
     f = conn.execute("SELECT image_key, preview_key, width FROM panorama_frames WHERE id = %s", (fid,)).fetchone()
     if not f:
         raise HTTPException(404, "frame not found")
@@ -166,7 +166,7 @@ def frame_image(fid: uuid.UUID, request: Request, w: int = Query(media.PREVIEW_W
 
 
 @router.get("/frames/{fid}/overlay")
-def frame_overlay(fid: uuid.UUID, conn=Depends(get_conn)):
+def frame_overlay(fid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     if not conn.execute("SELECT 1 FROM panorama_frames WHERE id = %s", (fid,)).fetchone():
         raise HTTPException(404, "frame not found")
     return conn.execute(
@@ -191,7 +191,7 @@ class AlignIn(BaseModel):
 
 
 @router.post("/captures/{cid}/align")
-def align(cid: uuid.UUID, body: AlignIn, conn=Depends(get_conn)):
+def align(cid: uuid.UUID, body: AlignIn, conn=Depends(get_conn, scope="function")):
     cap = get_capture(conn, cid)
     pts = body.points + body.tags
     if len(pts) < 3:
@@ -230,7 +230,7 @@ class TrajectoryIn(BaseModel):
 
 
 @router.put("/captures/{cid}/trajectory")
-def put_trajectory(cid: uuid.UUID, body: TrajectoryIn, conn=Depends(get_conn)):
+def put_trajectory(cid: uuid.UUID, body: TrajectoryIn, conn=Depends(get_conn, scope="function")):
     get_capture(conn, cid)
     frames = {r["id"]: r for r in conn.execute("SELECT id, seq, t_sec FROM panorama_frames WHERE capture_id = %s", (cid,))}
     for n in body.nodes:
@@ -251,7 +251,7 @@ def put_trajectory(cid: uuid.UUID, body: TrajectoryIn, conn=Depends(get_conn)):
 
 
 @router.post("/captures/{cid}/process")
-def process(cid: uuid.UUID, request: Request, background: bool = Query(False), conn=Depends(get_conn)):
+def process(cid: uuid.UUID, request: Request, background: bool = Query(False), conn=Depends(get_conn, scope="function")):
     """Synchronous by default; `?background=true` queues a worker job and returns 202 {capture_id, job_id}."""
     cap = get_capture(conn, cid)
     if background:
@@ -266,7 +266,7 @@ def process(cid: uuid.UUID, request: Request, background: bool = Query(False), c
 
 
 @router.get("/projects/{pid}/verification-queue")
-def verification_queue(pid: uuid.UUID, limit: int = Query(50, ge=1, le=500), conn=Depends(get_conn)):
+def verification_queue(pid: uuid.UUID, limit: int = Query(50, ge=1, le=500), conn=Depends(get_conn, scope="function")):
     """Pending low-confidence CV proposals: one per element, with frame + overlay polygon. A human POST /elements/{uid}/observations clears it."""
     get_project(conn, pid)
     _, rules = load_rules(conn)

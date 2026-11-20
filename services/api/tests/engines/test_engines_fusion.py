@@ -43,3 +43,16 @@ def test_deviation_passes_through():
 def test_state_only_observation():
     r = fuse([{"state": "INSTALLED", "confidence": 0.9, "view_quality": 1, "occlusion_ratio": 0}], {"percent": 0, "state": "NOT_STARTED"}, L)
     assert r["percent"] == 80
+
+
+def test_review_deviation_persists_and_state_never_drops():
+    from fauxel_api.vision.fusion import fuse
+    from fauxel_api.vision.ladders import ladder_for
+    lad = ladder_for("arch_interior")
+    obs = [{"state": "INSTALLED", "percent": 80, "confidence": 0.95, "occlusion_ratio": 0.0, "view_quality": 1.0}]
+    dev = {"state": "DEVIATION_FLAGGED", "percent": 50, "confidence": 0.9}
+    assert fuse(obs, dev, lad)["state"] == "DEVIATION_FLAGGED"
+    assert fuse(obs, dev, lad, rework=True)["state"] == "INSTALLED"
+    low = [{"state": "FRAMED_OR_ROUGHED", "percent": 50, "confidence": 0.95, "occlusion_ratio": 0.0, "view_quality": 1.0}]
+    out = fuse(low, {"state": "INSTALLED", "percent": 37, "confidence": 0.9}, lad)
+    assert out["state"] == "INSTALLED" and out["percent"] >= 37

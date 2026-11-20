@@ -17,25 +17,25 @@ router = APIRouter()
 
 
 @router.get("/projects/{pid}/progress/summary")
-def progress_summary(pid: uuid.UUID, conn=Depends(get_conn)):
+def progress_summary(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return reporting.summary(conn, pid)
 
 
 @router.get("/projects/{pid}/progress/by-trade")
-def progress_by_trade(pid: uuid.UUID, conn=Depends(get_conn)):
+def progress_by_trade(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return reporting.breakdown(conn, pid, "trade")
 
 
 @router.get("/projects/{pid}/progress/by-zone")
-def progress_by_zone(pid: uuid.UUID, conn=Depends(get_conn)):
+def progress_by_zone(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return reporting.breakdown(conn, pid, "zone")
 
 
 @router.get("/projects/{pid}/progress/timeseries")
-def progress_timeseries(pid: uuid.UUID, conn=Depends(get_conn)):
+def progress_timeseries(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     try:
         return reporting.timeseries(conn, pid)
@@ -46,7 +46,7 @@ def progress_timeseries(pid: uuid.UUID, conn=Depends(get_conn)):
 # ---------- schedule ----------
 
 @router.post("/projects/{pid}/schedule", status_code=201)
-async def upload_schedule(pid: uuid.UUID, request: Request, file: UploadFile = File(...), conn=Depends(get_conn)):
+async def upload_schedule(pid: uuid.UUID, request: Request, file: UploadFile = File(...), conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     data = await read_upload(file, request.app.state.settings.max_upload_mb)
     try:
@@ -86,13 +86,13 @@ async def upload_schedule(pid: uuid.UUID, request: Request, file: UploadFile = F
 
 
 @router.get("/projects/{pid}/activities")
-def list_activities(pid: uuid.UUID, conn=Depends(get_conn)):
+def list_activities(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return reporting.activities_view(conn, pid)
 
 
 @router.get("/projects/{pid}/evm")
-def get_evm(pid: uuid.UUID, scope: Literal["project", "trade", "zone"] = "project", conn=Depends(get_conn)):
+def get_evm(pid: uuid.UUID, scope: Literal["project", "trade", "zone"] = "project", conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     try:
         return reporting.evm(conn, pid, scope)
@@ -101,7 +101,7 @@ def get_evm(pid: uuid.UUID, scope: Literal["project", "trade", "zone"] = "projec
 
 
 @router.get("/projects/{pid}/forecast")
-def get_forecast(pid: uuid.UUID, conn=Depends(get_conn)):
+def get_forecast(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     try:
         return reporting.forecast(conn, pid)
@@ -112,13 +112,13 @@ def get_forecast(pid: uuid.UUID, conn=Depends(get_conn)):
 # ---------- plugin sync ----------
 
 @router.get("/projects/{pid}/writeback")
-def get_writeback(pid: uuid.UUID, request: Request, since: Optional[datetime] = None, conn=Depends(get_conn)):
+def get_writeback(pid: uuid.UUID, request: Request, since: Optional[datetime] = None, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return reporting.writeback(conn, pid, since, request.app.state.settings.public_url)
 
 
 @router.get("/projects/{pid}/timeliner")
-def get_timeliner(pid: uuid.UUID, conn=Depends(get_conn)):
+def get_timeliner(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return reporting.timeliner(conn, pid)
 
@@ -130,14 +130,14 @@ class AckIn(BaseModel):
 
 
 @router.post("/projects/{pid}/writeback/ack")
-def writeback_ack(pid: uuid.UUID, body: AckIn, conn=Depends(get_conn)):
+def writeback_ack(pid: uuid.UUID, body: AckIn, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     ev = emit(conn, "progress.synced", pid, host=body.host, applied=max(body.applied, 0), model=body.model)
     return {"ok": True, "event_id": ev["event_id"]}
 
 
 @router.get("/projects/{pid}/export.csv")
-def export_csv(pid: uuid.UUID, conn=Depends(get_conn)):
+def export_csv(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return Response(reporting.export_csv(conn, pid), media_type="text/csv",
                     headers={"Content-Disposition": f'attachment; filename="fauxel-{pid}.csv"'})

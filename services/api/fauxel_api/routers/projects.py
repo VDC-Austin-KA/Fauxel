@@ -27,17 +27,17 @@ class ProjectIn(BaseModel):
 
 
 @router.get("/projects")
-def list_projects(conn=Depends(get_conn)):
+def list_projects(conn=Depends(get_conn, scope="function")):
     return conn.execute("SELECT * FROM projects ORDER BY created_at DESC").fetchall()
 
 
 @router.post("/projects", status_code=201)
-def create_project(body: ProjectIn, conn=Depends(get_conn)):
+def create_project(body: ProjectIn, conn=Depends(get_conn, scope="function")):
     return conn.execute("INSERT INTO projects (name, description) VALUES (%s, %s) RETURNING *", (body.name, body.description)).fetchone()
 
 
 @router.get("/projects/{pid}")
-def read_project(pid: uuid.UUID, conn=Depends(get_conn)):
+def read_project(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     return get_project(conn, pid)
 
 
@@ -51,7 +51,7 @@ def _merge_bbox(boxes):
 
 
 @router.get("/projects/{pid}/lbs")
-def lbs(pid: uuid.UUID, conn=Depends(get_conn)):
+def lbs(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     """Buildings > levels > zones. Zones carry `polygon` ([[x,y],...] project-frame meters, null without geometry) and `bbox`
     [minx,miny,maxx,maxy]; levels carry `bbox` over their elements and zones."""
     get_project(conn, pid)
@@ -75,7 +75,7 @@ def lbs(pid: uuid.UUID, conn=Depends(get_conn)):
 
 
 @router.get("/projects/{pid}/levels/{lid}/floorplan.svg")
-def floorplan_svg(pid: uuid.UUID, lid: uuid.UUID, width: int = Query(1200, ge=200, le=4000), walk: bool = True, conn=Depends(get_conn)):
+def floorplan_svg(pid: uuid.UUID, lid: uuid.UUID, width: int = Query(1200, ge=200, le=4000), walk: bool = True, conn=Depends(get_conn, scope="function")):
     """Plan view: zones coloured by percent complete, element footprints by status (red = open deviation), blue dots = walk path."""
     get_project(conn, pid)
     lv = conn.execute("SELECT name FROM levels WHERE id = %s AND project_id = %s", (lid, pid)).fetchone()
@@ -92,7 +92,7 @@ class ModelFromKey(BaseModel):
 
 
 @router.post("/projects/{pid}/models", status_code=201)
-async def upload_model(pid: uuid.UUID, request: Request, conn=Depends(get_conn)):
+async def upload_model(pid: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     """Multipart `file` (IFC, synchronous 201) or JSON {upload_key} (queued worker job, 202 {job_id}; poll GET /jobs/{id})."""
     get_project(conn, pid)
     if request.headers.get("content-type", "").lower().startswith("application/json"):
@@ -117,7 +117,7 @@ async def upload_model(pid: uuid.UUID, request: Request, conn=Depends(get_conn))
 
 
 @router.post("/projects/{pid}/models/import", status_code=201)
-def import_model(pid: uuid.UUID, payload: dict, request: Request, conn=Depends(get_conn)):
+def import_model(pid: uuid.UUID, payload: dict, request: Request, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     errors = validation_errors(request.app.state.settings, "bim-export", payload)
     if errors:
@@ -126,14 +126,14 @@ def import_model(pid: uuid.UUID, payload: dict, request: Request, conn=Depends(g
 
 
 @router.get("/projects/{pid}/models")
-def list_models(pid: uuid.UUID, conn=Depends(get_conn)):
+def list_models(pid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     get_project(conn, pid)
     return conn.execute("SELECT id, project_id, name, source, version, file_key, host_version, element_count, created_at "
                         "FROM bim_models WHERE project_id = %s ORDER BY created_at DESC", (pid,)).fetchall()
 
 
 @router.get("/models/{mid}/file")
-def model_file(mid: uuid.UUID, request: Request, conn=Depends(get_conn)):
+def model_file(mid: uuid.UUID, request: Request, conn=Depends(get_conn, scope="function")):
     m = conn.execute("SELECT name, file_key FROM bim_models WHERE id = %s", (mid,)).fetchone()
     if not m or not m["file_key"]:
         raise HTTPException(404, "model has no stored file")
@@ -158,7 +158,7 @@ ELEMENT_SELECT = (
 @router.get("/projects/{pid}/elements")
 def list_elements(pid: uuid.UUID, response: Response, level_id: Optional[uuid.UUID] = None, zone_id: Optional[uuid.UUID] = None,
                   trade: Optional[str] = None, state: Optional[str] = None, q: Optional[str] = None,
-                  limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0), conn=Depends(get_conn)):
+                  limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0), conn=Depends(get_conn, scope="function")):
     """Returns a JSON list; the unpaged total is in the X-Total-Count header."""
     get_project(conn, pid)
     where, args = ["e.project_id = %s"], [pid]
@@ -180,7 +180,7 @@ def list_elements(pid: uuid.UUID, response: Response, level_id: Optional[uuid.UU
 
 
 @router.get("/elements/{uid}")
-def read_element(uid: uuid.UUID, conn=Depends(get_conn)):
+def read_element(uid: uuid.UUID, conn=Depends(get_conn, scope="function")):
     el = conn.execute(f"{ELEMENT_SELECT} WHERE e.element_uid = %s", (uid,)).fetchone()
     if not el:
         raise HTTPException(404, "element not found")
@@ -207,7 +207,7 @@ class ObservationIn(BaseModel):
 
 
 @router.post("/elements/{uid}/observations", status_code=201)
-def add_observation(uid: uuid.UUID, body: ObservationIn, conn=Depends(get_conn)):
+def add_observation(uid: uuid.UUID, body: ObservationIn, conn=Depends(get_conn, scope="function")):
     el = conn.execute("SELECT element_uid, project_id, trade, ifc_class FROM bim_elements WHERE element_uid = %s", (uid,)).fetchone()
     if not el:
         raise HTTPException(404, "element not found")
@@ -223,6 +223,12 @@ def add_observation(uid: uuid.UUID, body: ObservationIn, conn=Depends(get_conn))
     cur = conn.execute("SELECT * FROM element_status WHERE element_uid = %s FOR UPDATE", (uid,)).fetchone()
     cur_pct = cur["percent_complete"] if cur else 0.0
     pct = body.percent if body.percent is not None else percent_for_state(ladder, body.state, cur_pct)
+    if body.percent is not None and body.state != "DEVIATION_FLAGGED":
+        rung = min(ladder, key=lambda r: (abs(r["percent"] - body.percent), r["percent"]))
+        if rung["state"] != body.state:
+            raise HTTPException(422, f"{body.percent:g}% is the {rung['state']} rung of this trade's ladder, not {body.state}; "
+                                     f"rungs: {[(r['percent'], r['state']) for r in ladder]}")
+        pct = float(rung["percent"])
     if cur and not body.rework and body.state != "DEVIATION_FLAGGED" and cur["state"] != "DEVIATION_FLAGGED":
         if pct < cur_pct - 1e-9 or STATES.index(body.state) < STATES.index(cur["state"]):
             raise HTTPException(409, f"would regress {cur['state']} {cur_pct:g}% -> {body.state} {pct:g}%; send rework=true for rework/demolition")

@@ -189,9 +189,33 @@ def import_export(conn, pid, payload: dict) -> dict:
         rows.append({**e, "aabb_min": mn, "aabb_max": mx, "level_id": level_id, "zone_id": zone_id,
                      "quantity": e.get("quantity"), "quantity_unit": e.get("quantity_unit"),
                      "ifc_class": None})
+    rows, dups = dedupe_rows(rows)
     resolve_uids(conn, pid, rows)
     write_elements(conn, pid, model["id"], rows)
-    return finish_model(conn, model["id"], len(rows))
+    return {**finish_model(conn, model["id"], len(rows)), "duplicates": dups}
+
+
+ID_COLS = ("revit_unique_id", "ifc_global_id", "navis_item_guid")
+
+
+def dedupe_rows(rows: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Federated exports repeat elements (e.g. a linked model loaded twice). First row wins per id; boxes merge."""
+    seen: dict[tuple, dict] = {}
+    out, dups = [], []
+    for r in rows:
+        keys = [(c, r[c]) for c in ID_COLS if r.get(c)]
+        first = next((seen[k] for k in keys if k in seen), None)
+        if first is None:
+            out.append(r)
+            for k in keys:
+                seen[k] = r
+            continue
+        first["aabb_min"] = [min(a, b) for a, b in zip(first["aabb_min"], r["aabb_min"])]
+        first["aabb_max"] = [max(a, b) for a, b in zip(first["aabb_max"], r["aabb_max"])]
+        dups.append({k: r.get(k) for k in (*ID_COLS, "name")})
+        for k in keys:
+            seen.setdefault(k, first)
+    return out, dups
 
 
 # ---------- IFC ----------

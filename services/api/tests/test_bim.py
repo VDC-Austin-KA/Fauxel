@@ -245,3 +245,24 @@ def test_public_buildingsmart_sample(client, pid, tmp_path):
     els = client.get(f"{API}/projects/{pid}/elements?limit=1000").json()
     assert r.json()["element_count"] == len(els) > 0
     assert all(e["ifc_global_id"] and len(e["aabb_min"]) == 3 for e in els)
+
+
+def test_review_import_dedupes_and_ladder_is_enforced(client, pid):
+    """Review findings #8 (duplicate ids in one import) and #12 (human percent must sit on the ladder)."""
+    el = {"revit_unique_id": "dup-1", "ifc_global_id": None, "navis_item_guid": None, "name": "Duct", "category": "Ducts",
+          "family_type": "Rect", "level": "L1", "room_or_zone": None, "trade": "hvac",
+          "aabb_min": [0, 0, 0], "aabb_max": [1, 1, 1], "quantity": 1.0, "quantity_unit": "m"}
+    twin = {**el, "aabb_min": [-1, 0, 0], "aabb_max": [1, 2, 1]}
+    payload = {"source": "navisworks", "model_name": "Fed", "host_version": "2027", "units": "m",
+               "shared_transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+               "levels": [{"name": "L1", "elevation_m": 0.0}], "elements": [el, twin]}
+    r = client.post(f"{API}/projects/{pid}/models/import", json=payload)
+    assert r.status_code == 201, r.text
+    assert len(r.json()["duplicates"]) == 1
+    els = client.get(f"{API}/projects/{pid}/elements").json()
+    assert len(els) == 1 and els[0]["aabb_min"][0] == -1 and els[0]["aabb_max"][1] == 2
+    uid = els[0]["element_uid"]
+    bad = client.post(f"{API}/elements/{uid}/observations", json={"state": "INSTALLED", "percent": 5})
+    assert bad.status_code == 422
+    ok = client.post(f"{API}/elements/{uid}/observations", json={"state": "INSTALLED", "percent": 78})
+    assert ok.status_code == 201 and ok.json()["status"]["percent_complete"] == 80
