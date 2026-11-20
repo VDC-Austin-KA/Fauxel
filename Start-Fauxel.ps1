@@ -15,6 +15,8 @@
   -Capture <paths>   Uploads ONE X2 files or folders (.insv/.insp raw, or Insta360 Studio JPG/MP4 exports) to the project
   -Cloudflare        Guided production setup for https://fauxel.<domain>: Tunnel, Worker, Pages, Access; media stays on this PC
                      (served through the tunnel at fauxel-files.<domain>, free) or goes to R2 (optional)
+  -DeployWeb         After a pull: rebuild the portal, redeploy Pages + Worker to fauxel.<domain> (no prompts)
+  -PublicToday       Anyone with the link can view, read-only, until 23:59 (the API closes it itself); -Private closes it
 
 .EXAMPLE
   .\Start-Fauxel.ps1
@@ -130,7 +132,7 @@ if (-not $SkipPrereqs) {
     if (Has 'dotnet') { Note '.NET SDK' 'OK' ((dotnet --list-sdks) -join '; ') } else { Note '.NET SDK' 'WARN' 'not found: plugins will be skipped (open a new terminal and re-run)' }
   }
   if (($Capture -or $Camera) -and -not (Has 'py') -and -not (Has 'python')) { Winget-Install 'Python.Python.3.12' 'Python 3.12' | Out-Null }
-  if ($Cloudflare -and -not (Has 'node')) { Winget-Install 'OpenJS.NodeJS.LTS' 'Node.js LTS' | Out-Null }
+  if (($Cloudflare -or $DeployWeb) -and -not (Has 'node')) { Winget-Install 'OpenJS.NodeJS.LTS' 'Node.js LTS' | Out-Null }
 }
 
 # ------------------------------------------------------------------ 2. code
