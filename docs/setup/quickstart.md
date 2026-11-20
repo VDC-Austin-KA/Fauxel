@@ -2,6 +2,20 @@
 
 Target: KA's Windows PC (NVIDIA GPU, under 12 GB VRAM) runs the database, API and processing in Docker; Cloudflare serves the portal at `https://fauxel.ackerworks.com` and reaches the PC only through a Tunnel.
 
+## One command (recommended)
+
+Put `Start-Fauxel.ps1` (repo root) in `C:\Fauxel`, keep your `.env` in `C:\Fauxel\infra\.env` (or `C:\Fauxel\.env`; it gets moved), then:
+
+```powershell
+cd C:\Fauxel
+powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1                 # install, update, build, start, key, project, sample IFC
+powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1 -Camera         # on the ONE X2 Wi-Fi: check the camera
+powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1 -Capture D:\DCIM # upload a walk
+powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1 -Cloudflare     # guided Tunnel, R2, Worker, Pages, Access
+```
+
+It is safe to re-run; it reuses the API key and project in `%APPDATA%\Fauxel\settings.json`. Sections 1 to 5 below are the manual equivalent.
+
 ## 1. Install on the PC (once)
 
 | Tool | Install |

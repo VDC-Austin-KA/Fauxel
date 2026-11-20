@@ -1,0 +1,15 @@
+# Containers run these files: keep LF even on Windows checkouts (core.autocrlf would break shell scripts).
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.ifc binary
+*.onnx binary
+*.dll binary
+# Revit reads shared parameter files as written by Revit (CRLF).
+*SharedParameters*.txt text eol=crlf
