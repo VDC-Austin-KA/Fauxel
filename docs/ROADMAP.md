@@ -22,7 +22,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | M4.1 | Shared spherical backbone + BIM-prior mask input, inference API (FastAPI, ONNX) | 4 | M3.1 | Runs on a sample frame; `inference.completed` emitted | todo |
 | M4.2 | First trade head: arch_interior (wall ladder) + multi-view Bayesian fusion + monotonic state machine | 4 | M4.1 | Per-wall state on a labeled test walk; mapped through progress_rules | todo |
 | M1.3 | **Revit plugin: element export + write-back** (shared params, view filters/overrides, Fauxel ribbon) | 1 | M0.2 | Builds for Revit 2025, 2026 (net8.0-windows, net10 once Autodesk's update ships) and 2027 (net10.0-windows). Updated params and colored 3D view on a sample model | todo |
-| M1.4 | Navisworks plugin: selection tree export, search sets, TimeLiner actuals sync, status appearance profiles | 1 | M0.2 | Builds for Navisworks 2025, 2026, 2027 (net48, bundle folders v22/v23/v24). Actual start/finish written to TimeLiner from Fauxel data | todo |
+| M1.4 | Navisworks plugin: selection tree export, search sets, TimeLiner actuals sync, status appearance profiles | 1 | M0.2 | Builds for Navisworks 2025, 2026, 2027 (all net48), deployed as one ApplicationPlugins bundle with Contents\v22/v23/v24 (2027 ignores the legacy Plugins folder). Actual start/finish written to TimeLiner from Fauxel data | todo |
 | M6.1 | Schedule ingest (P6 XER/XML, MSP XML, TimeLiner) + activity↔element mapping rules | 6 | M0.2, M1.1 | Sample XER maps to elements by LBS + CSI | todo |
 | M6.2 | EVM + production velocity + slip forecast | 6 | M6.1, M4.2 | PV/EV/SPI per zone/trade from fixture data | todo |
 | M7.1 | Web portal: split 360°/BIM viewer (That Open Engine first), synced camera, status overlay | 7 | M3.1 | Viewer shows a sample walk with overlay | todo |
@@ -50,6 +50,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | OpenSpace integration via API (KA has API access). M2.5 unblocked | KA |
 | 2026-11-20 | Reference camera: Insta360 ONE X2 (OSC supported). X3/X4/X5 support stays in scope, but tests and calibration target the X2 first | KA |
 | 2026-11-20 | Supported hosts: Revit 2025–2027, Navisworks 2025–2027 | KA |
+| 2026-11-20 | Navisworks 2027 stays on .NET Framework 4.8 (no .NET 8 move). All Navisworks hosts net48, delivered as an ApplicationPlugins bundle | KA confirmed; third-party 2027 SDK builds |
 | 2026-11-20 | Test fixtures: public IFC samples only (buildingSMART Sample-Test-Files), downloaded by script, not committed | KA |
 | 2026-11-20 | Repo: VDC-Austin-KA/Fauxel. This Project doc stays KA's live status. `docs/ROADMAP.md` in the repo is refreshed in each sprint PR | KA |
 
@@ -64,7 +65,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 
 ## Open questions for KA
 - (none open) Answered Nov 20: license→Apache-2.0, OpenSpace→API, camera→ONE X2, hosts→2025–2027, fixtures→public IFC, repo→VDC-Austin-KA/Fauxel
-- To verify in the sprints: the Navisworks 2027 target framework (assumed net48, bundle v24) and the timing of Autodesk's Revit 2025/2026 .NET 10 update
+- To verify in the sprints: the timing of Autodesk's Revit 2025/2026 .NET 10 update
 
 ## Scheduled tasks
 | Task | Schedule (America/Chicago) | ID | State |

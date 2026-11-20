@@ -24,7 +24,7 @@ Read the relevant docs before answering. When a phase doc and the ROADMAP decisi
 
 ## Platform baselines (verified Nov 2026; re-check in ecosystem-watch)
 - Supported hosts: Revit 2025–2027, Navisworks 2025–2027. Revit 2027 add-ins: **.NET 10**. Revit 2025/2026: net8.0-windows today, with Autodesk moving them to .NET 10. Multi-target per Revit year.
-- Navisworks plugins: **.NET Framework 4.8**, one binary per major version (v22=2025, v23=2026). The `bim-connectors` C# solution therefore needs a shared `netstandard2.0` core with net48 + net10 host projects. Phase 1's ".NET 8" is superseded.
+- Navisworks plugins: **.NET Framework 4.8** for 2025–2027 (2027 SDK 24.0.1453.24 is still net48, confirmed by KA), one binary per major version (v22=2025, v23=2026, v24=2027). Ship as an `ApplicationPlugins` bundle: 2027 no longer loads the legacy per-version Plugins folder. The `bim-connectors` C# solution therefore needs a shared `netstandard2.0` core with net48 + net10 host projects. Phase 1's ".NET 8" is superseded.
 - Autodesk Construction Cloud was renamed **Autodesk Forma** (Mar 2026). API endpoints didn't change, so code against the existing ACC/APS endpoints.
 - Reference camera: Insta360 ONE X2. Insta360 OSC: X3/X4/X4 Air/X5, ONE X/X2/R/RS. Pro 2 uses the separate Pro Camera API. OpenSpace integration uses KA's OpenSpace API access. Insta360 Media SDK is application-gated, so the OpenCV stitch path must stand alone in open-source mode.
 

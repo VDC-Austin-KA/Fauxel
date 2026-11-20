@@ -6,7 +6,7 @@ Baseline: 2026-11-20. Updated weekly by the "Fauxel – ecosystem watch" schedul
 | Dependency | Current baseline | Fauxel impact | Source |
 |---|---|---|---|
 | Revit API | 2027 runs on .NET 10. Autodesk is moving 2025/2026 from .NET 8 to .NET 10 (.NET 8 EOL Nov 10 2026) | Revit host targets net10. Watch whether 2025/2026 need dual builds | blog.autodesk.io Revit 2027 SDK; Autodesk forum ".NET 10 migration" |
-| Navisworks API | .NET Framework 4.8. One binary per major version (bundle folders v22=2025, v23=2026) | Navisworks host targets net48, multi-version bundle | APS Navisworks publisher guidelines |
+| Navisworks API | .NET Framework 4.8 for 2025–2027 (2027 SDK 24.0.1453.24 still net48). One binary per major version (bundle folders v22=2025, v23=2026, v24=2027). 2027 no longer loads add-ins from the legacy per-version Plugins folder | Navisworks host targets net48. Install only as an ApplicationPlugins bundle | APS Navisworks publisher guidelines; KA confirmed; naviscoord-mcp PR #1 (2027 load regression) |
 | Autodesk Construction Cloud | Renamed Autodesk Forma on Mar 24 2026. No URL, login or API changes | Single ACC/Forma adapter on existing APS endpoints | Autodesk construction blog |
 | OpenVSLAM | Taken down over license concerns. Community successor stella_vslam (BSD-2), supports equirectangular | Default SLAM worker | stella-cv/stella_vslam |
 | ORB-SLAM3 | GPLv3 | Optional isolated worker only | — |
@@ -29,4 +29,5 @@ Baseline: 2026-11-20. Updated weekly by the "Fauxel – ecosystem watch" schedul
 | pupil-apriltags | BSD-2 (wraps AprilTag 3, BSD-2) | Fiducials |
 
 ## Change log
+- 2026-11-20: Navisworks 2027 confirmed net48 (KA). 2027 ignores the legacy Plugins folder, so the ApplicationPlugins bundle is required. Affects M1.4.
 - 2026-11-20: Baseline created.
