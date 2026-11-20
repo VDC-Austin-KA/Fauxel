@@ -44,7 +44,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | SLAM default is stella_vslam (BSD-2, native equirect). ORB-SLAM3 is an optional GPL worker | License hygiene |
 | 2026-11-20 | Poses stored as quaternions, not roll/pitch/yaw (aligns Phase 0 with Phase 2) | Schema consistency |
 | 2026-11-20 | Wall % ladder maps to the 5-state enum through a versioned progress_rules table | Phase 0/4 consistency |
-| 2026-11-20 | Revit internal→shared uses `ProjectLocation.GetTotalTransform()`. The Python transformer is the test oracle | Avoid true-north sign errors |
+| 2026-11-20 | Revit internal→shared uses `ProjectLocation.GetTotalTransform().Inverse` (GetTotalTransform maps shared→internal). Plugins export internal-frame boxes; the server applies shared_transform once | Senior review + Revit API forum usage |
 | 2026-11-20 | Treat "ACC" and "Forma" as one adapter (rebrand, same endpoints) | Mar 2026 rebrand |
 | 2026-11-20 | License: Apache-2.0 | KA deferred to Claude |
 | 2026-11-20 | OpenSpace integration via API (KA has API access). M2.5 unblocked | KA |
@@ -53,6 +53,12 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | Navisworks 2027 stays on .NET Framework 4.8 (no .NET 8 move). All Navisworks hosts net48, delivered as an ApplicationPlugins bundle | KA confirmed; third-party 2027 SDK builds |
 | 2026-11-20 | Test fixtures: public IFC samples only (buildingSMART Sample-Test-Files), downloaded by script, not committed | KA |
 | 2026-11-20 | Repo: VDC-Austin-KA/Fauxel. This Project doc is KA's live status, mirrored to `docs/ROADMAP.md` on every push | KA |
+| 2026-11-20 | Hosting: portal on Cloudflare Pages + Worker gateway at fauxel.ackerworks.com (Access-protected), media in R2; Postgres/PostGIS/pgvector, API and GPU compute on KA's PC in Docker, reached only via Cloudflare Tunnel | KA + Cloudflare limits (no GPU containers, no PostGIS) |
+| 2026-11-20 | v1 backend is one FastAPI service plus a Postgres job-queue worker, with outbox + Redpanda events so modules can split out later | Minimalism ladder |
+| 2026-11-20 | v1 CV = BIM-prior change detection; anything under 0.8 confidence goes to the human verification queue and never writes verified status; verified samples train the ONNX trade models | Senior review finding #1 |
+| 2026-11-20 | Large files upload straight to R2/S3 with presigned multipart PUTs (Cloudflare caps request bodies at 100 MB) | Field app review |
+| 2026-11-20 | Machine clients (plugins, phone app, CLI) pass Cloudflare Access with a service token (CF-Access-Client-Id/Secret) | Senior review finding #5 |
+| 2026-11-20 | Local S3 is RustFS (MinIO stopped publishing community images) | Infra build |
 | 2026-11-20 | No GitHub Actions, Copilot or GitHub-hosted agents. Claude builds and tests locally (`scripts/check.sh`) and pushes finished files straight to `main` (no PR flow). CI workflow removed | KA |
 
 ## Spec gaps found in the phase docs
