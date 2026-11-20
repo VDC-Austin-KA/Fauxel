@@ -1,4 +1,4 @@
-// Deterministic mock dataset: 3 levels, 6 zones/level, ~390 elements, 3 capture dates, schedule, deviations.
+// Deterministic mock dataset: 3 projects (data center, medical office, fab support) with type-specific fit-out; 3 levels, 6 zones/level, 3 capture dates, schedule, deviations.
 import { headingToQuat } from "@/lib/equirect";
 import { plannedPctAt, sCurve } from "@/lib/evm";
 import { LADDERS } from "@/lib/ladders";
@@ -63,9 +63,75 @@ export interface Dataset {
 
 export const CORRIDOR = { y0: 13.575, y1: 16.425, x0: 3, x1: 57, h: 3.2 };
 
+type Kind = "datacenter" | "medical" | "fab";
+type Add = (lvIdx: number, trade: Trade, nm: string, ifcClass: string, cat: string, fam: string, min: Vec3, max: Vec3) => void;
+// Activity labels per building type: structure, framing, HVAC, electrical, plumbing/FP, finishes.
+const LABELS: Record<Kind, string[]> = {
+  datacenter: ["Precast frame & deck", "Hot-aisle containment framing", "CRAH setting & CHW piping", "Busway, tray & PDUs", "Pre-action sprinkler", "Containment panels & finishes"],
+  medical: ["Structure", "Metal stud framing", "HVAC duct & VAV rough-in", "Electrical rough-in & lighting", "Plumbing & FP rough-in", "Drywall, doors & ceilings"],
+  fab: ["Waffle slab & steel", "Cleanroom wall framing", "FFU, exhaust & make-up air", "Tool power & cable tray", "Process piping (UPW, PCW, gases)", "Cleanroom panels & raised floor"],
+};
+// Per-type fit-out around the shared corridor walk route (y 13.4-16.6), structure and corridor MEP. South zone y 1.5-13, north y 17-28.5.
+const FITOUT: Record<Kind, (add: Add, li: number, z0: number, L: string) => void> = {
+  datacenter(add, li, z0, L) {
+    const rows: [number, number][] = [[3, 4.2], [5.4, 6.6], [8.4, 9.6], [10.8, 12], [18, 19.2], [20.4, 21.6], [23.4, 24.6], [25.8, 27]];
+    rows.forEach(([y0, y1], r) => {
+      for (let p = 0; p < 4; p++) add(li, "other", `${L} Row ${r + 1} rack pod ${p + 1}`, "IfcFurniture", "Furniture", "Rack pod: 10 x 42U 600x1200", [6 + p * 12, y0, z0], [17.6 + p * 12, y1, z0 + 2.4]);
+      add(li, "electrical", `${L} Busway row ${r + 1}`, "IfcCableSegment", "Electrical Equipment", "Busway 800A", [6, (y0 + y1) / 2 - 0.15, z0 + 3.0], [54, (y0 + y1) / 2 + 0.15, z0 + 3.15]);
+      add(li, "electrical", `${L} PDU-${li + 1}${String(r + 1).padStart(2, "0")}`, "IfcElectricDistributionBoard", "Electrical Equipment", "PDU 300 kVA", [54.5, y0, z0], [55.7, y1, z0 + 2.0]);
+    });
+    for (const [y0, y1] of [[4.2, 5.4], [9.6, 10.8], [19.2, 20.4], [24.6, 25.8]] as [number, number][])
+      for (let p = 0; p < 4; p++) add(li, "arch_interior", `${L} Hot-aisle containment ${y0.toFixed(1)} sect ${p + 1}`, "IfcCovering", "Ceilings", "HAC roof panel", [6 + p * 12, y0, z0 + 2.4], [17.6 + p * 12, y1, z0 + 2.5]);
+    for (let k = 0; k < 3; k++) for (const [y0, side] of [[1.6, "S"], [25, "N"]] as [number, string][])
+      add(li, "hvac", `${L} CRAH-${side}${k + 1}`, "IfcUnitaryEquipment", "Mechanical Equipment", "CRAH 150 kW fan wall", [58, y0 + k * 1.3, z0], [59.4, y0 + k * 1.3 + 1.1, z0 + 2.2]);
+    for (let x = 6; x <= 54; x += 6) for (const [ya, yb] of [[1.5, 13], [17, 28.5]]) {
+      add(li, "plumbing_fp", `${L} Pre-action branch ${x}${ya < 10 ? "S" : "N"}`, "IfcPipeSegment", "Pipes", "Pipe: Steel Sch10 1-1/4in", [x, ya, z0 + 3.9], [x + 0.05, yb, z0 + 3.95]);
+      add(li, "electrical", `${L} LED high bay ${x}${ya < 10 ? "S" : "N"}`, "IfcLightFixture", "Lighting Fixtures", "LED high bay 150W", [x - 0.3, (ya + yb) / 2 - 0.3, z0 + 3.6], [x + 0.3, (ya + yb) / 2 + 0.3, z0 + 3.75]);
+    }
+  },
+  medical(add, li, z0, L) {
+    for (let k = 0; k < 12; k++) for (const side of ["S", "N"] as const) {
+      const x0 = 3 + k * 4.5, x1 = x0 + 4.5, [y0, y1] = side === "S" ? [1.5, 13.4] : [16.6, 28.5], yc = (y0 + y1) / 2;
+      const room = `${li + 1}${side === "S" ? 1 : 2}${String(k + 1).padStart(2, "0")}`;
+      add(li, "arch_interior", `${L} Partition exam ${room}`, "IfcWall", "Walls", "Basic Wall: Partition 3-5/8 STC 50", [x1 - 0.06, y0, z0], [x1 + 0.06, y1, z0 + 3.2]);
+      add(li, "arch_interior", `${L} Door exam ${room}`, "IfcDoor", "Doors", "Single Flush 1070x2135", [x0 + 0.5, side === "S" ? 13.3 : 16.5, z0], [x0 + 1.55, side === "S" ? 13.5 : 16.7, z0 + 2.135]);
+      add(li, "hvac", `${L} Branch duct exam ${room}`, "IfcDuctSegment", "Ducts", "Rectangular Duct 300x200", [x0 + 2.1, Math.min(yc, 15), z0 + 2.7], [x0 + 2.4, Math.max(yc, 15), z0 + 2.9]);
+      add(li, "hvac", `${L} Diffuser exam ${room}`, "IfcAirTerminal", "Air Terminals", "Supply diffuser 600x600", [x0 + 1.95, yc - 0.3, z0 + 2.6], [x0 + 2.55, yc + 0.3, z0 + 2.7]);
+      add(li, "electrical", `${L} Troffer exam ${room}`, "IfcLightFixture", "Lighting Fixtures", "LED troffer 2x4", [x0 + 1.6, yc + 1.5, z0 + 2.6], [x0 + 2.9, yc + 2.1, z0 + 2.7]);
+      add(li, "plumbing_fp", `${L} Hand sink exam ${room}`, "IfcSanitaryTerminal", "Plumbing Fixtures", "Lavatory: wall hung", [x0 + 3.2, side === "S" ? y0 + 0.1 : y1 - 0.6, z0 + 0.75], [x0 + 3.8, side === "S" ? y0 + 0.6 : y1 - 0.1, z0 + 0.95]);
+      add(li, "plumbing_fp", `${L} Sprinkler exam ${room}`, "IfcFireSuppressionTerminal", "Sprinklers", "Pendent concealed K5.6", [x0 + 2.2, yc - 0.06, z0 + 2.65], [x0 + 2.32, yc + 0.06, z0 + 2.75]);
+      if (k % 2 === 0) add(li, "hvac", `${L} VAV-${li + 1}-${side}${k / 2 + 1}`, "IfcAirTerminalBox", "Mechanical Equipment", "VAV box 8in w/ HW reheat", [x0 + 3.6, side === "S" ? 12.2 : 17.1, z0 + 2.7], [x0 + 4.6, side === "S" ? 12.9 : 17.8, z0 + 3.1]);
+    }
+  },
+  fab(add, li, z0, L) {
+    if (li === 0) {  // sub-fab: vacuum pumps, scrubbers, process piping
+      for (let k = 0; k < 10; k++) for (const [y0, side] of [[3, "S"], [24, "N"]] as [number, string][]) {
+        add(li, "plumbing_fp", `${L} Dry vacuum pump ${side}${k + 1}`, "IfcPump", "Mechanical Equipment", "Dry pump 600 m3/h", [5 + k * 5, y0, z0], [6.2 + k * 5, y0 + 0.8, z0 + 1.1]);
+        add(li, "hvac", `${L} Local scrubber ${side}${k + 1}`, "IfcUnitaryEquipment", "Mechanical Equipment", "Burn-wet abatement", [7 + k * 5, y0, z0], [8.4 + k * 5, y0 + 1.2, z0 + 1.9]);
+      }
+      for (const [nm, y, d] of [["UPW supply", 6, 0.16], ["UPW return", 6.5, 0.12], ["PCW supply", 9, 0.2], ["PCW return", 9.6, 0.2], ["N2 header", 20, 0.08], ["CDA header", 21, 0.08]] as [string, number, number][])
+        for (let k = 0; k < 3; k++) add(li, "plumbing_fp", `${L} ${nm} seg ${k + 1}`, "IfcPipeSegment", "Pipes", nm.startsWith("UPW") ? "Pipe: PVDF" : "Pipe: 316L EP", [3 + k * 18, y, z0 + 3.4], [21 + k * 18, y + d, z0 + 3.4 + d]);
+      for (let k = 0; k < 6; k++) add(li, "electrical", `${L} Tool power panel TP-${k + 1}`, "IfcElectricDistributionBoard", "Electrical Equipment", "Panelboard 480V 400A", [6 + k * 9, 12.4, z0 + 0.4], [6.8 + k * 9, 12.7, z0 + 2.2]);
+    } else if (li === 1) {  // fab cleanroom: tools, cleanroom walls, raised floor
+      for (let k = 0; k < 8; k++) for (const [y0, side] of [[3, "S"], [20, "N"]] as [number, string][]) {
+        const tool = ["Etch", "CVD", "Litho track", "Wet bench", "Metrology", "Implant", "CMP", "Diffusion"][k];
+        add(li, "other", `${L} ${tool} tool ${side}${k + 1}`, "IfcFurniture", "Specialty Equipment", `${tool} process tool`, [4 + k * 6.5, y0, z0], [8.5 + k * 6.5, y0 + 3, z0 + 2.6]);
+        add(li, "arch_interior", `${L} Raised floor bay ${side}${k + 1}`, "IfcCovering", "Floors", "Perforated raised floor 600", [3 + k * 6.75, y0 - 1.5, z0], [9.75 + k * 6.75, y0 + 6, z0 + 0.05]);
+      }
+      for (let k = 0; k < 9; k++) for (const y of [1.4, 28.4]) add(li, "arch_interior", `${L} Cleanroom wall panel ${y < 10 ? "S" : "N"}${k + 1}`, "IfcWall", "Walls", "Cleanroom panel 50mm", [3 + k * 6, y, z0], [9 + k * 6, y + 0.1, z0 + 3.4]);
+      for (let k = 0; k < 9; k++) add(li, "electrical", `${L} Tool drop cable tray ${k + 1}`, "IfcCableCarrierSegment", "Cable Tray", "Wire basket 300", [3 + k * 6, 11.5, z0 + 3.3], [9 + k * 6, 11.8, z0 + 3.4]);
+    } else {  // interstitial: FFU grid, exhaust, sprinklers
+      for (let i = 0; i < 9; i++) for (const y of [3, 7, 11, 19, 23, 27]) add(li, "hvac", `${L} FFU ${i + 1}-${y}`, "IfcFan", "Mechanical Equipment", "FFU 1200x600 EC", [4 + i * 6, y - 0.3, z0], [5.2 + i * 6, y + 0.3, z0 + 0.35]);
+      for (const [nm, y] of [["Acid exhaust", 8], ["Solvent exhaust", 10], ["General exhaust", 21]] as [string, number][])
+        for (let k = 0; k < 3; k++) add(li, "hvac", `${L} ${nm} seg ${k + 1}`, "IfcDuctSegment", "Ducts", nm.includes("Acid") ? "FRP round 600" : "316SS round 500", [3 + k * 18, y, z0 + 2.2], [21 + k * 18, y + 0.6, z0 + 2.8]);
+      for (let x = 6; x <= 54; x += 6) add(li, "plumbing_fp", `${L} Sprinkler branch ${x}`, "IfcPipeSegment", "Pipes", "Pipe: Steel Sch10 1-1/4in", [x, 1.5, z0 + 3.2], [x + 0.05, 28.5, z0 + 3.25]);
+    }
+  },
+};
+
 function ladderFor(trade: Trade) { return LADDERS[trade]; }
 
-function build(seed: number, name: string, address: string, levelFactors: number[], bias: number): Dataset {
+function build(seed: number, name: string, address: string, levelFactors: number[], bias: number, kind: Kind): Dataset {
   const r = rng(seed);
   const pid = uuid(r);
   const modelId = uuid(r);
@@ -107,10 +173,6 @@ function build(seed: number, name: string, address: string, levelFactors: number
       add(li, "arch_interior", `${L} Corridor Wall S-${s + 1}`, "IfcWall", "Walls", "Basic Wall: Metal Stud 3-5/8 + 5/8 GWB", [x0, 13.425, z0], [x0 + 3, 13.575, z0 + H], { corridor: true, seg: s, side: "S" });
       add(li, "arch_interior", `${L} Corridor Wall N-${s + 1}`, "IfcWall", "Walls", "Basic Wall: Metal Stud 3-5/8 + 5/8 GWB", [x0, 16.425, z0], [x0 + 3, 16.575, z0 + H], { corridor: true, seg: s, side: "N" });
     }
-    for (let k = 0; k < 8; k++) {
-      const x = 6 + k * 6.5, north = k % 2 === 0;
-      add(li, "arch_interior", `${L} Partition ${k + 1}`, "IfcWall", "Walls", "Basic Wall: Partition 3-5/8", [x, north ? 16.6 : 6, z0], [x + 0.15, north ? 26 : 13.4, z0 + H]);
-    }
     // Structure
     for (let c = 0; c < 7; c++) for (const y of [1, 29]) add(li, "structural", `${L} Column C${c + 1}${y < 15 ? "S" : "N"}`, "IfcColumn", "Structural Columns", "Concrete-Rectangular 600x600", [c * 10 - 0.3 + (c === 0 ? 0.3 : 0), y - 0.3, z0], [c * 10 + 0.3 + (c === 0 ? 0.3 : 0), y + 0.3, z0 + 4.5]);
     for (let b = 0; b < 6; b++) add(li, "structural", `${L} Beam B${b + 1}`, "IfcBeam", "Structural Framing", "Concrete-Rectangular Beam 400x700", [b * 10, 0.8, z0 + 3.8], [b * 10 + 10, 1.2, z0 + 4.5]);
@@ -121,16 +183,7 @@ function build(seed: number, name: string, address: string, levelFactors: number
       add(li, "electrical", `${L} Cable Tray ${s + 1}`, "IfcCableCarrierSegment", "Cable Tray", "Ladder Tray 600", [x0, 15.5, z0 + 2.8], [x0 + 6, 16.1, z0 + 3.0], { corridor: true, seg: s });
       add(li, "plumbing_fp", `${L} Sprinkler Main ${s + 1}`, "IfcPipeSegment", "Pipes", "Pipe: Steel Sch40 4in", [x0, 15.0, z0 + 2.95], [x0 + 6, 15.2, z0 + 3.15], { corridor: true, seg: s });
     }
-    for (let k = 0; k < 14; k++) {
-      const x = 5 + k * 3.8, north = k % 2 === 0;
-      add(li, "hvac", `${L} Branch Duct ${k + 1}`, "IfcDuctSegment", "Ducts", "Rectangular Duct 400x250", [x, north ? 17 : 8, z0 + 2.6], [x + 3, north ? 24 : 13, z0 + 3.1]);
-      add(li, "electrical", `${L} Conduit Run ${k + 1}`, "IfcCableCarrierSegment", "Conduit", "Conduit: EMT 1in", [x, north ? 17.5 : 7, z0 + 2.7], [x + 3, north ? 17.7 : 7.2, z0 + 2.85]);
-    }
-    for (let k = 0; k < 8; k++) {
-      const x = 8 + k * 6.5;
-      add(li, "plumbing_fp", `${L} Riser / Drop ${k + 1}`, "IfcPipeSegment", "Pipes", "Pipe: Copper 2in", [x, 5, z0], [x + 0.2, 5.2, z0 + 3.1]);
-    }
-    for (let k = 0; k < 3; k++) add(li, "other", `${L} ${["Door D1", "Door D2", "Equipment Pad"][k]}`, "IfcDoor", "Doors", "Single Flush 900x2100", [4 + k * 25, 13.4, z0], [5 + k * 25, 13.6, z0 + 2.1]);
+    FITOUT[kind](add, li, z0, L);
   }
 
   // Assign progress
@@ -212,13 +265,14 @@ function build(seed: number, name: string, address: string, levelFactors: number
 
   // Schedule
   const activities: Activity[] = [];
+  const lab = LABELS[kind];
   const types: { key: string; trade: Trade; label: string; start: number; len: number }[] = [
-    { key: "STR", trade: "structural", label: "Structure", start: 0, len: 60 },
-    { key: "FRM", trade: "arch_interior", label: "Metal stud framing", start: 60, len: 50 },
-    { key: "HVC", trade: "hvac", label: "HVAC rough-in", start: 70, len: 70 },
-    { key: "ELE", trade: "electrical", label: "Electrical rough-in", start: 85, len: 65 },
-    { key: "PLB", trade: "plumbing_fp", label: "Plumbing & FP rough-in", start: 85, len: 55 },
-    { key: "DRY", trade: "arch_interior", label: "Drywall hang & finish", start: 150, len: 70 },
+    { key: "STR", trade: "structural", label: lab[0], start: 0, len: 60 },
+    { key: "FRM", trade: "arch_interior", label: lab[1], start: 60, len: 50 },
+    { key: "HVC", trade: "hvac", label: lab[2], start: 70, len: 70 },
+    { key: "ELE", trade: "electrical", label: lab[3], start: 85, len: 65 },
+    { key: "PLB", trade: "plumbing_fp", label: lab[4], start: 85, len: 55 },
+    { key: "DRY", trade: "arch_interior", label: lab[5], start: 150, len: 70 },
   ];
   const p0 = +new Date(PROJECT_START);
   levels.forEach((lv, li) => {
@@ -274,18 +328,18 @@ function build(seed: number, name: string, address: string, levelFactors: number
     percent_complete: nowPct, open_deviations: devs.filter((d) => d.status === "open").length, last_capture: CAPTURE_DATES[2], sparkline: spark,
   };
   return {
-    project, model: { id: modelId, project_id: pid, name: `${name.split(" ")[0]}-ARCH-MEP.ifc`, source: "ifc", version: 3, created_at: "2026-09-12T16:00:00Z", element_count: els.length },
+    project, model: { id: modelId, project_id: pid, name: `${name.split(" ")[0]}-Federated-A-S-M-E-P-FP.ifc`, source: "ifc", version: 3, created_at: "2026-09-12T16:00:00Z", element_count: els.length },
     levels, zones, lbs, elements: els, observations, captures, frames, activities, deviations: devs,
-    acks: [{ host: "revit", applied: Math.floor(els.length * 0.93), model: "Bastrop-ARCH.rvt", at: "2026-11-17T18:22:00Z" }, { host: "navisworks", applied: els.length, model: "Bastrop-Federated.nwd", at: "2026-11-18T13:05:00Z" }],
+    acks: [{ host: "revit", applied: Math.floor(els.length * 0.93), model: `${name.split(" ")[0]}-ARCH.rvt`, at: "2026-11-17T18:22:00Z" }, { host: "navisworks", applied: els.length, model: `${name.split(" ")[0]}-Federated.nwd`, at: "2026-11-18T13:05:00Z" }],
     tsActual, footprint: [60, 30], corridor: CORRIDOR,
   };
 }
 
 const cache = new Map<string, Dataset>();
 const SPECS = [
-  { seed: 11, name: "Bastrop Data Hall 1", address: "Bastrop, TX", levels: [0.95, 0.62, 0.3], bias: 0 },
-  { seed: 29, name: "Riverside Medical Tower", address: "Austin, TX", levels: [0.8, 0.5, 0.25], bias: -0.03 },
-  { seed: 47, name: "Taylor Fab Annex", address: "Taylor, TX", levels: [0.5, 0.3, 0.1], bias: -0.05 },
+  { seed: 11, name: "Bastrop Data Hall 1", address: "Bastrop, TX", levels: [0.95, 0.62, 0.3], bias: 0, kind: "datacenter" as Kind },
+  { seed: 29, name: "Riverside Medical Tower", address: "Austin, TX", levels: [0.8, 0.5, 0.25], bias: -0.03, kind: "medical" as Kind },
+  { seed: 47, name: "Taylor Fab Annex", address: "Taylor, TX", levels: [0.5, 0.3, 0.1], bias: -0.05, kind: "fab" as Kind },
 ];
 const ids: string[] = [];
 function datasetByIndex(i: number): Dataset {
@@ -293,7 +347,7 @@ function datasetByIndex(i: number): Dataset {
   const key = String(i);
   let d = cache.get(key);
   if (!d) {
-    d = build(s.seed, s.name, s.address, s.levels, s.bias);
+    d = build(s.seed, s.name, s.address, s.levels, s.bias, s.kind);
     cache.set(key, d);
     ids[i] = d.project.id;
   }

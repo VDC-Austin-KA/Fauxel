@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/evm";
 import { useProjectId } from "@/lib/hooks";
 import { STATUS_COLORS } from "@/lib/status";
 import type { Element, Frame, Vec3 } from "@/lib/types";
+import { currentModelIds } from "@/lib/types";
 import AlignPanel, { type AlignPair } from "@/viewer/AlignPanel";
 import BimView, { type BimMode } from "@/viewer/BimView";
 import Minimap from "@/viewer/Minimap";
@@ -208,7 +209,7 @@ export default function Viewer() {
         </div>
         <div className="h-[46vh] min-h-[340px]">
           <BimView bus={bus} elements={els.data?.items ?? []} levelId={levelId} cam={cam} mode={bimMode} selectedUid={selected}
-            onSelect={(u) => { setSelected(u); }} alignMode={alignOn} onPickPoint={onBimPick} alignPoints={alignPts} modelId={models.data?.[0]?.id} />
+            onSelect={(u) => { setSelected(u); }} alignMode={alignOn} onPickPoint={onBimPick} alignPoints={alignPts} modelIds={currentModelIds(models.data)} />
         </div>
       </div>
 

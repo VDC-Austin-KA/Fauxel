@@ -88,7 +88,7 @@ APS app: Traditional Web App, callback `https://fauxel.ackerworks.com/api/v1/int
 
 ## 7. First progress cycle
 
-No data yet? `scripts/demo/make_demo.py` creates a "Fauxel Demo" project (3-level IFC with every trade, a P6 schedule around today, progress on half the elements); the run command is at the top of the file.
+No data yet? `scripts/demo/make_demo.py` builds three demo projects, each with six discipline IFC models (A, S, M, E, P, FP) federated in the 3D view, a P6 schedule with WBS and costs around today, field progress that follows it, and QC deviations: **Bastrop Data Center - Hall A** (data hall, rack pods, CRAHs, switchgear/UPS, generators, pre-action), **Cedar Park Medical Office Building** (3 storeys, 72 exam rooms) and **Riverside Lofts - Building 2** (5-storey podium multifamily, 48 units). Run commands are at the top of the file; `--replace` rebuilds, `--delete` removes them, `--ifc-only DIR` just writes the IFC + XER files.
 
 1. Portal › Uploads: the IFC model (or Revit › Fauxel › Export Model).
 2. Place 4+ AprilTags per level (print sheets: `python -m fauxel_capture.tags sheet 101 102 103 104 -o tags`), survey their BIM coordinates.

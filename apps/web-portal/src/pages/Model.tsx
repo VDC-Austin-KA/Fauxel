@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/evm";
 import { activityByElement, SCHED_COLORS, SCHED_LABELS, scheduleStatus, type SchedStatus } from "@/lib/schedule-status";
 import { STATUS_COLORS, statusKind, TRADE_COLORS, TRADE_LABELS, type StatusKind } from "@/lib/status";
 import type { Element, Trade } from "@/lib/types";
+import { currentModelIds } from "@/lib/types";
 import BimView from "@/viewer/BimView";
 import { ViewBus } from "@/viewer/ViewBus";
 
@@ -92,7 +93,7 @@ export default function Model() {
             <Card><EmptyState title="No model yet" hint="Upload an IFC model (Uploads) or export one from Revit / Navisworks." /></Card>
           ) : (
             <BimView bus={bus} elements={items} levelId={level} mode="orbit" selectedUid={selected} onSelect={setSelected}
-              alignMode={false} onPickPoint={() => undefined} alignPoints={[]} modelId={models.data?.[0]?.id} colorOf={colorOf} visibleOf={visibleOf} />
+              alignMode={false} onPickPoint={() => undefined} alignPoints={[]} modelIds={currentModelIds(models.data)} colorOf={colorOf} visibleOf={visibleOf} />
           )}
         </div>
         <div className="space-y-3">

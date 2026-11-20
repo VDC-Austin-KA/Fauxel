@@ -18,6 +18,7 @@ TRADE_RULES = [
     ("arch_interior", r"framing|finish|door|flooring|\btile\b"),
 ]
 _LEVEL = re.compile(r"\b(?:level|lvl|l)\s*-?\s*(\d+|[a-z])\b(?!\w)", re.I)
+_ROOF = re.compile(r"\broof\b", re.I)  # "Roof" is a level name in most Revit/IFC models
 _ZONE = re.compile(r"\b(zone|area)\s*-?\s*(\d+[a-z]?|[a-z])\b(?!\w)", re.I)
 
 
@@ -39,6 +40,8 @@ def infer_location(name: str, wbs: str = ""):
             zone = f"{z.group(1).title()} {z.group(2).upper()}"
         if lv and not level:
             level = f"Level {lv.group(1).upper()}"
+        if not level and _ROOF.search(text):
+            level = "Roof"
     return zone or level, level
 
 
@@ -195,7 +198,9 @@ def map_activities(activities, elements) -> dict:
         zone, level = norm_loc(a.get("zone_name")), norm_loc(a.get("level_name"))
         hit = []
         if zone:
-            hit = [e for e in same if zone in (norm_loc(e.get("zone_name")),)]
+            # zone names repeat per level ("Zone A" on every floor): a named level must match too
+            hit = [e for e in same if zone == norm_loc(e.get("zone_name"))
+                   and (not level or level == norm_loc(e.get("level_name")))]
         if not hit and level:
             hit = [e for e in same if level in (norm_loc(e.get("level_name")), norm_loc(e.get("zone_name")))]
         if not zone and not level:

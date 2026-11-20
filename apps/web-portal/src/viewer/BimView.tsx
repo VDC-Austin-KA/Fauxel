@@ -21,7 +21,8 @@ interface Props {
   alignMode: boolean;
   onPickPoint: (p: Vec3) => void;
   alignPoints: Vec3[];
-  modelId?: string;
+  /** IFC models to load and federate (latest version of each discipline model); elements no IFC covers stay boxes. */
+  modelIds?: string[];
   onSource?: (s: string) => void;
   /** Override the status color per element (Model page color modes). Return null to ghost it. */
   colorOf?: (e: Element) => string | null;
@@ -186,16 +187,34 @@ export default function BimView(p: Props) {
     applyHighlight();
     // frame camera once
     if (p.mode === "orbit") frame();
-    // try IFC
+    // try IFC: every discipline model, federated in one scene
     let dead = false;
-    if (p.modelId && !isMock() && !ifcLoaded.current) {
-      loadIfc(p.modelId, p.elements, st, () => dead).then((ok) => {
-        if (ok && !dead) { ifcLoaded.current = true; setSource("IFC (web-ifc)"); p.onSource?.("IFC"); applyHighlight(); }
-      }).catch(() => undefined);
+    const ids = p.modelIds ?? [];
+    if (ids.length && !isMock() && !ifcLoaded.current) {
+      (async () => {
+        const loaded: { group: THREE.Group; uids: Set<string> }[] = [];
+        for (const id of ids) {
+          const r = await loadIfc(id, p.elements).catch(() => null);
+          if (dead) return;
+          if (r) loaded.push(r);
+        }
+        if (!loaded.length) return;
+        const covered = new Set(loaded.flatMap((l) => [...l.uids]));
+        const keep = st.meshes.filter((m) => !covered.has(m.userData.uid));  // e.g. Revit/Navisworks exports without an IFC
+        while (st.root.children.length) st.root.children.pop();
+        for (const l of loaded) st.root.add(l.group);
+        for (const m of keep) st.root.add(m);
+        st.meshes = [...loaded.flatMap((l) => l.group.children.filter((c) => c.userData.uid)), ...keep];
+        ifcLoaded.current = true;
+        setSource(`IFC (web-ifc), ${loaded.length} model${loaded.length > 1 ? "s" : ""}`);
+        p.onSource?.("IFC");
+        applyHighlight();
+        st.render();
+      })();
     }
     return () => { dead = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.elements, p.modelId]);
+  }, [p.elements, (p.modelIds ?? []).join(",")]);
 
   function frame() {
     const st = S.current;
@@ -288,10 +307,10 @@ function threeDirToViewBim(dir: THREE.Vector3, heading: number) {
 }
 const wrap = (a: number) => { const T = Math.PI * 2; return ((((a + Math.PI) % T) + T) % T) - Math.PI; };
 
-/** Load the IFC from the API with web-ifc and colour meshes by element status. Returns false if unavailable. */
-async function loadIfc(modelId: string, elements: Element[], st: Scene3, dead: () => boolean): Promise<boolean> {
+/** Load one IFC from the API with web-ifc, meshes coloured by element status. null if the model has no file. */
+async function loadIfc(modelId: string, elements: Element[]): Promise<{ group: THREE.Group; uids: Set<string> } | null> {
   const res = await authedFetch(`${(await import("@/api/client")).API_BASE}/models/${modelId}/file`);
-  if (!res.ok) return false;
+  if (!res.ok) return null;
   const buf = new Uint8Array(await res.arrayBuffer());
   const WebIFC = await import("web-ifc");
   const api = new WebIFC.IfcAPI();
@@ -300,10 +319,12 @@ async function loadIfc(modelId: string, elements: Element[], st: Scene3, dead: (
   const model = api.OpenModel(buf);
   const byGuid = new Map(elements.map((e) => [e.ifc_global_id, e]));
   const group = new THREE.Group();
+  const uids = new Set<string>();
   api.StreamAllMeshes(model, (mesh) => {
     let guid: string | undefined;
     try { guid = api.GetLine(model, mesh.expressID).GlobalId?.value; } catch { /* ignore */ }
     const el = guid ? byGuid.get(guid) : undefined;
+    if (el) uids.add(el.element_uid);
     for (let i = 0; i < mesh.geometries.size(); i++) {
       const pg = mesh.geometries.get(i);
       const g = api.GetGeometry(model, pg.geometryExpressID);
@@ -324,13 +345,7 @@ async function loadIfc(modelId: string, elements: Element[], st: Scene3, dead: (
     }
   });
   api.CloseModel(model);
-  if (dead()) return false;
   // web-ifc already returns Y-up geometry; undo the root's BIM Z-up -> Y-up rotation so it is not applied twice
   group.rotation.x = Math.PI / 2;
-  // replace the box model with the IFC meshes
-  while (st.root.children.length) st.root.children.pop();
-  st.root.add(group);
-  st.meshes = group.children.filter((c) => c.userData.uid);
-  st.render();
-  return true;
+  return { group, uids };
 }

@@ -86,3 +86,15 @@ def test_map_activities():
     assert m["a"] == ["w1"]
     assert sorted(m["b"]) == ["w1", "w2"]  # unknown zone falls back to level
     assert m["c"] == ["d1"] and m["d"] == ["s1"]
+
+
+def test_zone_names_repeat_per_level_and_roof():
+    acts = [{"external_id": "z", "trade": "hvac", "zone_name": "Zone A", "level_name": "Level 3"},
+            {"external_id": "r", "trade": "hvac", "zone_name": "Roof", "level_name": "Roof"}]
+    els = [{"element_uid": "a2", "trade": "hvac", "zone_name": "Zone A", "level_name": "Level 2"},
+           {"element_uid": "a3", "trade": "hvac", "zone_name": "Zone A", "level_name": "Level 3"},
+           {"element_uid": "rt", "trade": "hvac", "zone_name": None, "level_name": "Roof"}]
+    m = map_activities(acts, els)
+    assert m["z"] == ["a3"] and m["r"] == ["rt"]
+    assert infer_location("Roof RTU setting") == ("Roof", "Roof")
+    assert infer_location("Level 2 roofing")[1] == "Level 2"

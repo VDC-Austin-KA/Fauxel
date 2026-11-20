@@ -236,3 +236,10 @@ export interface ApsConfig { hub_id?: string; aps_project_id?: string; aecdm_pro
 export interface ApsHub { id: string; name: string; region?: string }
 export interface ApsProject { id: string; name: string }
 export interface ApsModel { item_id: string; name: string; file_type?: string; version_id: string; version_urn: string; folder?: string; size?: number }
+
+/** Latest version of each model that may have an IFC file (one per discipline), for the federated 3D view. */
+export function currentModelIds(models: BimModel[] | undefined): string[] {
+  const latest = new Map<string, BimModel>();
+  for (const m of models ?? []) if (m.source === "ifc" && (latest.get(m.name)?.version ?? 0) < m.version) latest.set(m.name, m);
+  return [...latest.values()].sort((a, b) => a.name.localeCompare(b.name)).map((m) => m.id);
+}
