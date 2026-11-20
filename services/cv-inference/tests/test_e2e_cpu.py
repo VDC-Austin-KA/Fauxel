@@ -31,6 +31,10 @@ def test_train_export_and_slot(tmp_path, monkeypatch):
     mf = json.loads((mdir / "manifest.json").read_text())
     assert mf["ladder"] == LADDERS["hvac"] and mf["input_size"] == 128 and 0.2 <= mf["temperature"] <= 8
     assert (mdir / "model.onnx").stat().st_size > 1e6 and (mdir / "metrics.json").exists()
+    from fauxel_cv.evaluate import evaluate_trade
+    ev = evaluate_trade(tmp_path / "models", tmp_path / "data", "hvac")
+    assert ev["status"] in ("pass", "fail") and ev["metrics"]["n"] == rep["n_val"]
+    assert abs(ev["metrics"]["accuracy"] - rep["val"]["accuracy"]) < 0.02  # ONNX + slot preprocessing == torch eval
 
     monkeypatch.setenv("FAUXEL_MODEL_DIR", str(tmp_path / "models"))
     ms.reset_cache()
