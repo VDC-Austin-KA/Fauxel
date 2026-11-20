@@ -12,7 +12,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 |---|---|---|---|---|---|
 | M0.1 | Monorepo scaffold, CONTRIBUTING, docker-compose dev stack (LICENSE, docs, alignment code and `scripts/check.sh` already on main) | 0 | — | `docker compose up` brings up PG+PostGIS+pgvector, MinIO, Redpanda. `scripts/check.sh` passes | todo |
 | M0.2 | Canonical schema DDL + migrations (projects→zones LBS, bim_models/elements, capture_sessions, trajectory_nodes, panorama_frames, detections, progress_rules, schedule_activities, evm_snapshots) | 0 | M0.1 | Migrations apply clean. Seed fixture loads. ERD in docs | todo |
-| M0.3 | Event contracts (JSON Schema per topic) + transform contract doc | 0 | M0.2 | Schemas validate sample payloads in CI | todo |
+| M0.3 | Event contracts (JSON Schema per topic) + transform contract doc | 0 | M0.2 | Schemas validate sample payloads in `scripts/check.sh` | todo |
 | M1.1 | IFC connector: IfcOpenShell parse → bim_elements, storey/zone tree, meshes, BVH | 1 | M0.2 | Public buildingSMART IFC4 sample ingests (fixtures fetched by script, not committed). Element count matches IfcOpenShell. Unit tests | todo |
 | M1.2 | BCF 2.1/3.0 import/export | 1 | M1.1 | Round-trip test with a BCF file from Revit/Navis | todo |
 | M2.1 | Ingest pre-stitched equirect video/photos → keyframes (1–1.5 m / 15°, Laplacian blur filter) → MinIO | 2 | M0.1 | Keyframes plus panorama_frames rows from a sample walk | todo |
