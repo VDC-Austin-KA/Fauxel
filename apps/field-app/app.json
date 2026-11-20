@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Fauxel Field",
+    "slug": "fauxel-field",
+    "scheme": "fauxel-field",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ackerworks.fauxel.field",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take photos for pins and QC notes.",
+        "NSMicrophoneUsageDescription": "Dictate field notes.",
+        "NSSpeechRecognitionUsageDescription": "Convert dictated field notes to text."
+      }
+    },
+    "android": {
+      "package": "com.ackerworks.fauxel.field",
+      "permissions": ["CAMERA", "RECORD_AUDIO", "POST_NOTIFICATIONS", "ACCESS_NETWORK_STATE", "ACCESS_WIFI_STATE"],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-notifications",
+      ["expo-image-picker", { "cameraPermission": "Take photos for pins and QC notes." }],
+      ["expo-speech-recognition", { "microphonePermission": "Dictate field notes.", "speechRecognitionPermission": "Convert dictated field notes to text." }],
+      "./plugins/withCameraCleartext"
+    ],
+    "experiments": { "typedRoutes": true }
+  }
+}

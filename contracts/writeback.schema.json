@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fauxel.dev/contracts/writeback.schema.json",
+  "title": "Fauxel write-back payload",
+  "description": "GET /api/v1/projects/{pid}/writeback. Consumed by the Revit and Navisworks plugins.",
+  "type": "object",
+  "required": ["project_id", "generated_at", "rules_version", "elements"],
+  "additionalProperties": false,
+  "properties": {
+    "project_id": {"type": "string", "format": "uuid"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "rules_version": {"type": "integer", "minimum": 1},
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["element_uid", "revit_unique_id", "ifc_global_id", "navis_item_guid", "percent_complete", "status", "last_verified", "confidence", "evidence_url", "color"],
+        "additionalProperties": false,
+        "properties": {
+          "element_uid": {"type": "string", "format": "uuid"},
+          "revit_unique_id": {"type": ["string", "null"]},
+          "ifc_global_id": {"type": ["string", "null"]},
+          "navis_item_guid": {"type": ["string", "null"]},
+          "percent_complete": {"type": "number", "minimum": 0, "maximum": 100},
+          "status": {"enum": ["NOT_STARTED", "FRAMED_OR_ROUGHED", "INSTALLED", "INSULATED_OR_FINISHED", "DEVIATION_FLAGGED"]},
+          "last_verified": {"type": ["string", "null"], "format": "date-time"},
+          "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "evidence_url": {"type": ["string", "null"]},
+          "color": {"enum": ["#22c55e", "#eab308", "#ef4444", "#9ca3af"]}
+        }
+      }
+    }
+  }
+}

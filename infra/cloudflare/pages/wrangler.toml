@@ -1,0 +1,5 @@
+# Cloudflare Pages project "fauxel" (static portal). Deploy from infra/cloudflare/pages:
+#   npx wrangler pages deploy --project-name fauxel      (uses the settings below)
+name = "fauxel"
+pages_build_output_dir = "../../../apps/web-portal/dist"
+compatibility_date = "2025-09-01"

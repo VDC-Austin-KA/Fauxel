@@ -1,0 +1,16 @@
+**/node_modules
+**/.git
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/*.egg-info
+**/.venv
+apps
+docs
+infra
+tools
+services/slam-worker
+services/synthetic-worker
+services/cv-inference
+**/tests
+.git

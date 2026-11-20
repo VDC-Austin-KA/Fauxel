@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Fauxel (Revit @REVIT_YEAR@)</Name>
+    <Assembly>Fauxel\Fauxel.Revit.dll</Assembly>
+    <AddInId>8c6b2f0e-3d5a-4c7e-9a1b-fa0e1c2d3e4f</AddInId>
+    <FullClassName>Fauxel.Revit.App</FullClassName>
+    <VendorId>FXEL</VendorId>
+    <VendorDescription>Fauxel, open-source construction progress tracking</VendorDescription>
+  </AddIn>
+</RevitAddIns>

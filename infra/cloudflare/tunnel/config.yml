@@ -1,0 +1,17 @@
+# Locally-managed Cloudflare Tunnel config (template). The default Docker setup uses a remotely-managed tunnel
+# with a token (CLOUDFLARE_TUNNEL_TOKEN) and the same ingress configured in the Zero Trust dashboard; use this
+# file only if you prefer `cloudflared tunnel run` with a credentials file.
+#
+# Render:  FAUXEL_DOMAIN=ackerworks.com TUNNEL_ID=<uuid> envsubst < config.yml > ~/.cloudflared/config.yml
+tunnel: ${TUNNEL_ID}
+credentials-file: /etc/cloudflared/${TUNNEL_ID}.json   # use C:\Users\<you>\.cloudflared\<uuid>.json on a Windows service
+
+ingress:
+  # API origin. Inside the docker network the service name is "api"; for a Windows-service cloudflared use
+  # http://localhost:8000 (the compose file publishes the API on 127.0.0.1:8000).
+  - hostname: fauxel-origin.${FAUXEL_DOMAIN}
+    service: http://api:8000
+    originRequest:
+      connectTimeout: 30s
+      noTLSVerify: false
+  - service: http_status:404

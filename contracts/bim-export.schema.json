@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fauxel.dev/contracts/bim-export.schema.json",
+  "title": "Fauxel BIM element export",
+  "description": "POST /api/v1/projects/{pid}/models/import. Sent by the Revit or Navisworks plugin. aabb_min/aabb_max are meters in the host's internal frame; the API applies shared_transform (row-major 4x4, internal -> shared/project frame, meters) to each box. Level elevations are already in the shared frame.",
+  "type": "object",
+  "required": ["source", "model_name", "host_version", "units", "shared_transform", "levels", "elements"],
+  "additionalProperties": false,
+  "properties": {
+    "source": {"enum": ["revit", "navisworks"]},
+    "model_name": {"type": "string", "minLength": 1},
+    "host_version": {"type": "string"},
+    "units": {"const": "m"},
+    "shared_transform": {"type": "array", "items": {"type": "number"}, "minItems": 16, "maxItems": 16},
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "elevation_m"],
+        "additionalProperties": false,
+        "properties": {"name": {"type": "string", "minLength": 1}, "elevation_m": {"type": "number"}}
+      }
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "category", "trade", "aabb_min", "aabb_max"],
+        "anyOf": [
+          {"required": ["revit_unique_id"], "properties": {"revit_unique_id": {"type": "string", "minLength": 1}}},
+          {"required": ["ifc_global_id"], "properties": {"ifc_global_id": {"type": "string", "minLength": 1}}},
+          {"required": ["navis_item_guid"], "properties": {"navis_item_guid": {"type": "string", "minLength": 1}}}
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "revit_unique_id": {"type": ["string", "null"]},
+          "ifc_global_id": {"type": ["string", "null"]},
+          "navis_item_guid": {"type": ["string", "null"]},
+          "name": {"type": "string"},
+          "category": {"type": "string"},
+          "family_type": {"type": ["string", "null"]},
+          "level": {"type": ["string", "null"]},
+          "room_or_zone": {"type": ["string", "null"]},
+          "trade": {"enum": ["structural", "arch_interior", "hvac", "electrical", "plumbing_fp", "other"]},
+          "aabb_min": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "aabb_max": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "quantity": {"type": ["number", "null"]},
+          "quantity_unit": {"enum": ["m", "m2", "m3", "ea", null]}
+        }
+      }
+    }
+  }
+}

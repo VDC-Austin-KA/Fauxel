@@ -1,0 +1,12 @@
+# This is a Revit shared parameter file.
+# Do not edit manually.
+*META	VERSION	MINVERSION
+META	2	1
+*GROUP	ID	NAME
+GROUP	1	Fauxel
+*PARAM	GUID	NAME	DATATYPE	DATACATEGORY	GROUP	VISIBLE	DESCRIPTION	USERMODIFIABLE	HIDEWHENNOVALUE
+PARAM	6194b7e0-ec12-5274-b496-e0132f4dba02	Fauxel_PercentComplete	NUMBER		1	1	Verified percent complete (0-100) written by Fauxel	1	0
+PARAM	b58eee12-b349-519b-8eea-818a4cc948d8	Fauxel_Status	TEXT		1	1	Verified install state written by Fauxel	1	0
+PARAM	2d7f87b5-b852-5506-b9dd-e34da5350c83	Fauxel_LastVerified	TEXT		1	1	UTC timestamp of last field verification	1	0
+PARAM	2db8d270-1a9c-5e28-83b4-6588de609d2c	Fauxel_Confidence	NUMBER		1	1	Verification confidence (0-1)	1	0
+PARAM	f7bb892d-eac0-590b-b219-d9ca4501b886	Fauxel_EvidenceUrl	URL		1	1	Link to the evidence image in Fauxel	1	0

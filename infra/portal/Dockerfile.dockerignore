@@ -1,0 +1,10 @@
+**/node_modules
+**/.git
+apps/web-portal/dist
+services
+connectors
+contracts
+db
+docs
+tools
+infra/cloudflare

@@ -1,0 +1,4 @@
+bin/
+obj/
+navisworks/Fauxel.bundle/Contents/
+*.user

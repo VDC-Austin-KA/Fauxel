@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fauxel.dev/contracts/events/deviation.detected.schema.json",
+  "title": "deviation.detected",
+  "type": "object",
+  "required": [
+    "event_id",
+    "occurred_at",
+    "project_id",
+    "deviation_id",
+    "kind",
+    "severity"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "deviation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "element_uid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "positional",
+        "precover",
+        "missing",
+        "extra"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    }
+  },
+  "x-version": 1
+}

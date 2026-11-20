@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fauxel.dev/contracts/events/inference.completed.schema.json",
+  "title": "inference.completed",
+  "type": "object",
+  "required": [
+    "event_id",
+    "occurred_at",
+    "project_id",
+    "capture_id",
+    "frames_processed",
+    "elements_observed",
+    "elements_updated",
+    "queued_for_review"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "capture_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "frames_processed": {
+      "type": "integer"
+    },
+    "frames_skipped": {
+      "type": "integer"
+    },
+    "elements_observed": {
+      "type": "integer"
+    },
+    "elements_updated": {
+      "type": "integer"
+    },
+    "queued_for_review": {
+      "type": "integer"
+    }
+  },
+  "x-version": 1
+}

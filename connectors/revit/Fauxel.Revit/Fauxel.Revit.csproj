@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Build one Revit year at a time:  dotnet build -c R25 | R26 | R27   (Debug/Release default to 2027). Output: bin/R25, bin/R26, bin/R27 -->
+  <PropertyGroup>
+    <Configurations>Debug;Release;R25;R26;R27</Configurations>
+    <AssemblyName>Fauxel.Revit</AssemblyName>
+    <RootNamespace>Fauxel.Revit</RootNamespace>
+    <Version>0.1.0</Version>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='R25'">
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RevitVersion>2025</RevitVersion>
+    <RevitApiVersion>2025.4.60</RevitApiVersion>
+    <DefineConstants>$(DefineConstants);REVIT2025</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='R26'">
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RevitVersion>2026</RevitVersion>
+    <RevitApiVersion>2026.4.10</RevitApiVersion>
+    <DefineConstants>$(DefineConstants);REVIT2026</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'!='R25' And '$(Configuration)'!='R26'">
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RevitVersion>2027</RevitVersion>
+    <RevitApiVersion>2027.4.0</RevitApiVersion>
+    <DefineConstants>$(DefineConstants);REVIT2027</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference-only: Revit supplies these at runtime, never copy Autodesk DLLs. -->
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="$(RevitApiVersion)" ExcludeAssets="runtime" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="$(RevitApiVersion)" ExcludeAssets="runtime" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIIFC" Version="$(RevitApiVersion)" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\dotnet-core\Fauxel.Connectors.Core\Fauxel.Connectors.Core.csproj" />
+    <Compile Include="..\..\dotnet-core\Shared\SettingsForm.cs" Link="Shared\SettingsForm.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Fauxel_SharedParameters.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fauxel.addin" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The .addin points at Fauxel\Fauxel.Revit.dll; stamp the Revit year into the copy in the output folder. -->
+  <Target Name="StampAddin" AfterTargets="Build">
+    <WriteLinesToFile File="$(OutDir)Fauxel.addin"
+                      Lines="$([System.IO.File]::ReadAllText('Fauxel.addin').Replace('@REVIT_YEAR@','$(RevitVersion)'))"
+                      Overwrite="true" />
+  </Target>
+</Project>

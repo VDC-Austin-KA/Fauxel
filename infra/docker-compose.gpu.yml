@@ -1,0 +1,29 @@
+# GPU override: NVIDIA reservation for api + worker (ONNX CV inference via onnxruntime-gpu). KA's card has 8-12 GB VRAM,
+# so FAUXEL_INFER_BATCH defaults to 2. Needs Docker Desktop with WSL2 GPU support and a current NVIDIA Windows driver
+# (`nvidia-smi` must work inside WSL). Use:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+x-gpu: &gpu
+  environment:
+    FAUXEL_INFER_BATCH: ${FAUXEL_INFER_BATCH:-2}
+    NVIDIA_VISIBLE_DEVICES: all
+    NVIDIA_DRIVER_CAPABILITIES: compute,utility
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+
+services:
+  api:
+    build:
+      args:
+        WITH_GPU: "1"
+    image: fauxel-api:gpu
+    <<: *gpu
+  worker:
+    image: fauxel-api:gpu
+    <<: *gpu
+  relay:
+    image: fauxel-api:gpu

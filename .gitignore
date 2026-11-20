@@ -25,3 +25,11 @@ fixtures/downloaded/
 *.nwd
 *.nwc
 .env
+
+# Build outputs and local envs
+connectors/navisworks/Fauxel.bundle/Contents/
+*.egg-info/
+.expo-export/
+apps/*/dist/
+*.onnx
+infra/.env

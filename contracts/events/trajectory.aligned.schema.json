@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fauxel.dev/contracts/events/trajectory.aligned.schema.json",
+  "title": "trajectory.aligned",
+  "type": "object",
+  "required": [
+    "event_id",
+    "occurred_at",
+    "project_id",
+    "capture_id",
+    "scale",
+    "rmse_m",
+    "transform_bim_from_slam"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "capture_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "scale": {
+      "type": "number"
+    },
+    "rmse_m": {
+      "type": "number"
+    },
+    "inliers": {
+      "type": "integer"
+    },
+    "transform_bim_from_slam": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 16,
+      "maxItems": 16
+    }
+  },
+  "x-version": 1
+}

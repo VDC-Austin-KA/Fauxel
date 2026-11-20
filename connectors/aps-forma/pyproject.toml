@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fauxel-aps"
+version = "0.1.0"
+description = "Autodesk Platform Services (Forma / ACC) adapter for Fauxel: OAuth, Data Management, Model Derivative, AEC Data Model, Issues, Locations, Assets, Webhooks"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = ["httpx>=0.27", "cryptography>=42"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "respx>=0.21"]
+
+[tool.setuptools.packages.find]
+include = ["fauxel_aps*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

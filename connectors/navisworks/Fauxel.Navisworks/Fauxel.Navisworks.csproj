@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- One Navisworks year per configuration:  dotnet build -c N25 | N26 | N27  (Debug/Release default to 2027). Output: bin/N25, bin/N26, bin/N27.
+       All three target .NET Framework 4.8 (2027 SDK 24.0.1453.24 is still net48). -->
+  <PropertyGroup>
+    <Configurations>Debug;Release;N25;N26;N27</Configurations>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>Fauxel.Navisworks</AssemblyName>
+    <RootNamespace>Fauxel.Navisworks</RootNamespace>
+    <Version>0.1.0</Version>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='N25'">
+    <NavisSeries>22</NavisSeries>
+    <NavisApiPackageVersion>2025.0.0</NavisApiPackageVersion>
+    <DefineConstants>$(DefineConstants);NAVIS2025</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='N26'">
+    <NavisSeries>23</NavisSeries>
+    <NavisApiPackageVersion>2026.0.1</NavisApiPackageVersion>
+    <DefineConstants>$(DefineConstants);NAVIS2026</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'!='N25' And '$(Configuration)'!='N26'">
+    <NavisSeries>24</NavisSeries>
+    <NavisApiPackageVersion>2027.0.0</NavisApiPackageVersion>
+    <DefineConstants>$(DefineConstants);NAVIS2027</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference-only. Autodesk assemblies are supplied by Navisworks at runtime and must never be copied or committed. -->
+    <PackageReference Include="Speckle.Navisworks.API" Version="$(NavisApiPackageVersion)" ExcludeAssets="runtime" PrivateAssets="all" />
+    <!-- Autodesk.Navisworks.Timeliner.dll reference assembly. Only a 2025 (v22) build is published; the TimeLiner API surface
+         used here is unchanged in 2026/2027 and App.Resolve maps it to the installed assembly at runtime. -->
+    <PackageReference Include="Alexpivo394.Navis.Api.Autodesk.Navisworks.Timeliner" Version="2025.0.0" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <ProjectReference Include="..\..\dotnet-core\Fauxel.Connectors.Core\Fauxel.Connectors.Core.csproj" />
+    <Compile Include="..\..\dotnet-core\Shared\SettingsForm.cs" Link="Shared\SettingsForm.cs" />
+  </ItemGroup>
+
+</Project>

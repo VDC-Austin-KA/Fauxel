@@ -1,0 +1,198 @@
+# Fauxel stack for KA's Windows PC (Docker Desktop + WSL2). Everything binds to 127.0.0.1; the only public path is
+# Cloudflare Tunnel (profile "tunnel"). Run from this folder:  docker compose up -d --build
+#   with GPU:     docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+#   with tunnel:  docker compose --profile tunnel up -d
+#   more workers: docker compose up -d --scale worker=2
+name: fauxel
+
+x-build-secrets: &build-secrets
+  secrets: [ca]   # optional CA bundle for builds behind a TLS-intercepting proxy: BUILD_CA_BUNDLE=/path/ca.crt (default: empty file = unused)
+
+x-api-env: &api-env
+  FAUXEL_DATABASE_URL: postgresql://${POSTGRES_USER:-fauxel}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}@db:5432/${POSTGRES_DB:-fauxel}
+  FAUXEL_STORAGE: ${FAUXEL_STORAGE:-s3}
+  FAUXEL_S3_ENDPOINT: ${FAUXEL_S3_ENDPOINT:-http://s3:9000}
+  # What browsers/phones/the Windows host reach in presigned upload URLs (R2: https://<account>.r2.cloudflarestorage.com)
+  FAUXEL_S3_PUBLIC_ENDPOINT: ${FAUXEL_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+  FAUXEL_S3_ADDRESSING: ${FAUXEL_S3_ADDRESSING:-path}
+  FAUXEL_S3_BUCKET: ${FAUXEL_S3_BUCKET:-fauxel-media}
+  FAUXEL_S3_ACCESS_KEY: ${FAUXEL_S3_ACCESS_KEY:-${LOCAL_S3_ACCESS_KEY:-fauxel}}
+  FAUXEL_S3_SECRET_KEY: ${FAUXEL_S3_SECRET_KEY:-${LOCAL_S3_SECRET_KEY}}
+  FAUXEL_S3_REGION: ${FAUXEL_S3_REGION:-us-east-1}
+  FAUXEL_MAX_DIRECT_UPLOAD_MB: ${FAUXEL_MAX_DIRECT_UPLOAD_MB:-20480}
+  FAUXEL_AUTH: ${FAUXEL_AUTH:-on}
+  FAUXEL_TRUST_ACCESS_HEADER: ${FAUXEL_TRUST_ACCESS_HEADER:-0}
+  FAUXEL_KEY_SALT: ${FAUXEL_KEY_SALT:?set FAUXEL_KEY_SALT in infra/.env}
+  FAUXEL_ADMIN_TOKEN: ${FAUXEL_ADMIN_TOKEN:-}
+  FAUXEL_KAFKA_BOOTSTRAP: ${FAUXEL_KAFKA_BOOTSTRAP:-redpanda:9092}
+  FAUXEL_PUBLIC_URL: ${FAUXEL_PUBLIC_URL:-http://localhost:8080}
+  FAUXEL_BLUR_MIN: ${FAUXEL_BLUR_MIN:-20}
+  FAUXEL_MAX_FRAMES: ${FAUXEL_MAX_FRAMES:-1500}
+  FAUXEL_MAX_UPLOAD_MB: ${FAUXEL_MAX_UPLOAD_MB:-2048}
+  FAUXEL_AUTO_MIGRATE: "1"
+  FAUXEL_INFER_BATCH: ${FAUXEL_INFER_BATCH:-2}
+  FAUXEL_MODEL_DIR: /models
+  # Integrations (all optional). Fernet key encrypts stored APS/Speckle tokens: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  FAUXEL_TOKEN_KEY: ${FAUXEL_TOKEN_KEY:-}
+  FAUXEL_APS_CLIENT_ID: ${FAUXEL_APS_CLIENT_ID:-}
+  FAUXEL_APS_CLIENT_SECRET: ${FAUXEL_APS_CLIENT_SECRET:-}
+  FAUXEL_APS_CALLBACK_URL: ${FAUXEL_APS_CALLBACK_URL:-https://fauxel.${FAUXEL_DOMAIN:-ackerworks.com}/api/v1/integrations/aps/callback}
+  FAUXEL_APS_WEBHOOK_SECRET: ${FAUXEL_APS_WEBHOOK_SECRET:-}
+  FAUXEL_APS_SCOPES_3LO: ${FAUXEL_APS_SCOPES_3LO:-}
+  FAUXEL_APS_SCOPES_2LO: ${FAUXEL_APS_SCOPES_2LO:-}
+  FAUXEL_APS_BASE_URL: ${FAUXEL_APS_BASE_URL:-}
+  FAUXEL_APS_REGION: ${FAUXEL_APS_REGION:-}
+  FAUXEL_SPECKLE_TOKEN: ${FAUXEL_SPECKLE_TOKEN:-}
+
+x-api-common: &api-common
+  image: fauxel-api:local
+  restart: unless-stopped
+  environment: *api-env
+  volumes:
+    # Host folder with trained ONNX trade models (<trade>/manifest.json + model.onnx). Empty = BIM-prior heuristic.
+    - ${FAUXEL_MODEL_DIR_HOST:-./models}:/models:ro
+
+services:
+  db:
+    build:
+      context: ./db
+      <<: *build-secrets
+    image: fauxel-db:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fauxel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in infra/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-fauxel}
+    ports: ["127.0.0.1:${DB_PORT:-5432}:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # Local S3. MinIO no longer publishes community Docker images (verified: docker.io and quay.io pulls are refused), so the
+  # default is RustFS (Apache-2.0, S3 API, bucket CORS + lifecycle verified in infra/smoke-test.sh). Any S3 server works: only
+  # FAUXEL_S3_* matter to the API. Production uses R2.
+  s3:
+    image: ${S3_IMAGE:-rustfs/rustfs:1.0.6}
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${LOCAL_S3_ACCESS_KEY:-fauxel}
+      RUSTFS_SECRET_KEY: ${LOCAL_S3_SECRET_KEY:?set LOCAL_S3_SECRET_KEY in infra/.env}
+    ports:
+      - "127.0.0.1:${S3_PORT:-9000}:9000"
+      - "127.0.0.1:${S3_CONSOLE_PORT:-9001}:9001"
+    volumes: ["s3data:/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/health >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  # One-shot: bucket + CORS (PUT/GET/HEAD, ETag exposed) + lifecycle (abort stale multipart uploads after 2 days).
+  s3-init:
+    image: amazon/aws-cli:latest
+    depends_on:
+      s3: { condition: service_healthy }
+    restart: "no"
+    environment:
+      AWS_ACCESS_KEY_ID: ${LOCAL_S3_ACCESS_KEY:-fauxel}
+      AWS_SECRET_ACCESS_KEY: ${LOCAL_S3_SECRET_KEY}
+      AWS_DEFAULT_REGION: ${FAUXEL_S3_REGION:-us-east-1}
+      BUCKET: ${FAUXEL_S3_BUCKET:-fauxel-media}
+    volumes: ["./s3:/cfg:ro"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        S3="aws --endpoint-url http://s3:9000"
+        $$S3 s3api head-bucket --bucket "$$BUCKET" 2>/dev/null || $$S3 s3 mb "s3://$$BUCKET"
+        $$S3 s3api put-bucket-cors --bucket "$$BUCKET" --cors-configuration file:///cfg/cors.json
+        $$S3 s3api put-bucket-lifecycle-configuration --bucket "$$BUCKET" --lifecycle-configuration file:///cfg/lifecycle.json
+        echo "bucket $$BUCKET ready (cors + lifecycle applied)"
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --smp=1
+      - --memory=512M
+      - --overprovisioned
+      - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:${REDPANDA_PORT:-19092}
+    ports: ["127.0.0.1:${REDPANDA_PORT:-19092}:19092"]
+    volumes: ["redpandadata:/var/lib/redpanda/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 15s
+
+  api:
+    <<: *api-common
+    build:
+      context: ..
+      dockerfile: infra/api/Dockerfile
+      args:
+        WITH_GPU: "0"
+        WITH_SPECKLE: ${WITH_SPECKLE:-1}
+      <<: *build-secrets
+    depends_on:
+      db: { condition: service_healthy }
+      s3-init: { condition: service_completed_successfully }
+      redpanda: { condition: service_healthy }
+    ports: ["127.0.0.1:${API_PORT:-8000}:8000"]
+
+  # Job queue: capture ingest (video keyframes, .insv/.insp stitching), IFC ingest, background processing.
+  # Scale: docker compose up -d --scale worker=2   (CPU/RAM bound; stitching a 5.7K video wants ~3 GB per worker)
+  worker:
+    <<: *api-common
+    command: ["python", "-m", "fauxel_api.worker"]
+    healthcheck: { disable: true }
+    depends_on:
+      api: { condition: service_healthy }
+
+  relay:
+    <<: *api-common
+    command: ["python", "-m", "fauxel_api.relay"]
+    healthcheck: { disable: true }
+    depends_on:
+      api: { condition: service_healthy }
+
+  portal:
+    build:
+      context: ..
+      dockerfile: infra/portal/Dockerfile
+      <<: *build-secrets
+    image: fauxel-portal:local
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    ports: ["127.0.0.1:${PORTAL_PORT:-8080}:80"]
+
+  cloudflared:
+    profiles: ["tunnel"]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    # Remotely-managed tunnel: the public hostname (fauxel-origin.${FAUXEL_DOMAIN}) -> http://api:8000 is set in the
+    # Zero Trust dashboard. See infra/cloudflare/tunnel/config.yml for the equivalent locally-managed config.
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      api: { condition: service_healthy }
+
+secrets:
+  ca:
+    file: ${BUILD_CA_BUNDLE:-./build-ca/empty.pem}
+
+volumes:
+  pgdata:
+  s3data:
+  redpandadata:

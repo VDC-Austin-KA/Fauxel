@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fauxel.dev/contracts/events/capture.uploaded.schema.json",
+  "title": "capture.uploaded",
+  "type": "object",
+  "required": [
+    "event_id",
+    "occurred_at",
+    "project_id",
+    "capture_id",
+    "source",
+    "frame_count"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "capture_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "level_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source": {
+      "enum": [
+        "insta360",
+        "openspace",
+        "upload"
+      ]
+    },
+    "frame_count": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "x-version": 1
+}

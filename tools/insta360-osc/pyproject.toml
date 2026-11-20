@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fauxel-osc"
+version = "0.1.0"
+description = "Field capture CLI for Insta360 ONE X2 (and other Open Spherical Camera API v2 cameras) with upload to the Fauxel API"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+dependencies = ["requests>=2.31"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+fauxel-osc = "fauxel_osc.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["fauxel_osc*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

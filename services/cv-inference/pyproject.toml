@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fauxel-cv"
+version = "0.1.0"
+description = "Fauxel CV: dataset builder, per-trade ordinal trainer, ONNX export for the API model slot"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "opencv-python-headless>=4.8",
+  "requests>=2.31",
+  # CPU wheels: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu   (CUDA: see pytorch.org)
+  "torch>=2.3",
+  "torchvision>=0.18",
+  "onnx>=1.16",
+  "onnxruntime>=1.18",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["fauxel_cv*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: trains a model on CPU (about a minute)"]

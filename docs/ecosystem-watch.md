@@ -26,8 +26,18 @@ Baseline: 2026-11-20. Updated weekly by the "Fauxel – ecosystem watch" schedul
 | Open3D | MIT | Geometry |
 | PyTorch3D | BSD-3 | Rendering |
 | BlenderProc / Blender | GPL-3.0 | Synthetic data (isolated worker) |
-| pupil-apriltags | BSD-2 (wraps AprilTag 3, BSD-2) | Fiducials |
+| pupil-apriltags | BSD-2 (wraps AprilTag 3, BSD-2) | Fiducials (single-threaded: 1.0.4 heap-corrupts with nthreads>1) |
+| shapely | BSD-3 | Zone footprints |
+| onnxruntime / onnxruntime-gpu | MIT | Trade model inference |
+| PyTorch / torchvision (EfficientNet-B0 weights) | BSD-3 | Trade model training |
+| specklepy | Apache-2.0 | Speckle connector |
+| Expo / React Native | MIT | Field app |
+| Nice3point.Revit.Api.* (reference assemblies) | MIT | Revit build references (not redistributed) |
+| Speckle.Navisworks.API (reference assemblies) | Apache-2.0 | Navisworks build references (not redistributed) |
+| Alexpivo394.Navis.Api.Autodesk.Navisworks.Timeliner | verify | TimeLiner reference (2025 build only; runtime resolves the installed DLL) |
+| Blender (synthetic-worker only) | GPL-3.0 | Isolated container, never imported by Apache code |
 
 ## Change log
+- 2026-11-20: Full-platform build. Added licenses above. buildingSMART sample IFCs are git-LFS: fetch via media.githubusercontent.com, not raw.githubusercontent.com. Docker builds behind the session proxy need the CA bundle passed in. No published TimeLiner reference package for 2026/2027.
 - 2026-11-20: Navisworks 2027 confirmed net48 (KA). 2027 ignores the legacy Plugins folder, so the ApplicationPlugins bundle is required. Affects M1.4.
 - 2026-11-20: Baseline created.

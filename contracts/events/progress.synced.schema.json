@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fauxel.dev/contracts/events/progress.synced.schema.json",
+  "title": "progress.synced",
+  "type": "object",
+  "required": [
+    "event_id",
+    "occurred_at",
+    "project_id",
+    "host",
+    "applied"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "host": {
+      "enum": [
+        "revit",
+        "navisworks",
+        "aps",
+        "speckle"
+      ]
+    },
+    "applied": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "model": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "x-version": 1
+}

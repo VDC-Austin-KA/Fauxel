@@ -1,0 +1,23 @@
+# Fauxel gateway Worker: fauxel.<domain>/api/* -> Cloudflare Tunnel origin, fauxel.<domain>/media/* -> R2.
+name = "fauxel-gateway"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+workers_dev = false
+
+routes = [
+  { pattern = "fauxel.${FAUXEL_DOMAIN}/api/*",   zone_name = "${FAUXEL_DOMAIN}" },
+  { pattern = "fauxel.${FAUXEL_DOMAIN}/media/*", zone_name = "${FAUXEL_DOMAIN}" },
+]
+
+[vars]
+# Tunnel hostname of the API on KA's PC (hostname only, https is assumed)
+API_ORIGIN = "fauxel-origin.${FAUXEL_DOMAIN}"
+MEDIA_CACHE_CONTROL = "private, max-age=86400"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "fauxel-media"
+
+# Secrets (never in this file):
+#   wrangler secret put ORIGIN_ACCESS_CLIENT_ID       # Access service token Client ID for the Worker -> origin hop
+#   wrangler secret put ORIGIN_ACCESS_CLIENT_SECRET   # Access service token Client Secret

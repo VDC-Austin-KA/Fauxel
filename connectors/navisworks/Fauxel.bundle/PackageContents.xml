@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Navisworks ApplicationPlugins bundle. Navisworks 2027 no longer loads the legacy Plugins folder, so all three years ship as a bundle.
+     Series codes: Nw22 = Navisworks 2025, Nw23 = 2026, Nw24 = 2027 (Nw21 = 2024, matching published open-source bundles).
+     Each year loads only its own binary, built against that year's Autodesk.Navisworks.Api (all .NET Framework 4.8). -->
+<ApplicationPackage SchemaVersion="1.0"
+                    AutodeskProduct="Navisworks"
+                    Name="Fauxel"
+                    Description="Fauxel construction progress tracking: export the selection tree, sync TimeLiner actuals, color elements by verified status."
+                    AppVersion="0.1.0"
+                    Author="Fauxel"
+                    ProductType="Application"
+                    SupportedLocales="Enu"
+                    AppNameSpace="fauxel.dev"
+                    UpgradeCode="{56EED472-CE91-53B9-AE91-E70C5B9AFA72}"
+                    OnlineDocumentation="">
+  <CompanyDetails Name="Fauxel" Url="https://github.com/VDC-Austin-KA/Fauxel" Email="" />
+
+  <!-- Navisworks 2025 -->
+  <Components Description="Fauxel for Navisworks 2025">
+    <RuntimeRequirements OS="Win64" Platform="NAVMAN|NAVSIM" SeriesMin="Nw22" SeriesMax="Nw22" />
+    <ComponentEntry AppName="Fauxel" Version="0.1.0" ModuleName="./Contents/v22/Fauxel.Navisworks.dll" AppDescription="Fauxel connector" AppType="ManagedPlugin" LoadOnCommandInvocation="False" LoadOnAutoCADStartup="True" />
+  </Components>
+
+  <!-- Navisworks 2026 -->
+  <Components Description="Fauxel for Navisworks 2026">
+    <RuntimeRequirements OS="Win64" Platform="NAVMAN|NAVSIM" SeriesMin="Nw23" SeriesMax="Nw23" />
+    <ComponentEntry AppName="Fauxel" Version="0.1.0" ModuleName="./Contents/v23/Fauxel.Navisworks.dll" AppDescription="Fauxel connector" AppType="ManagedPlugin" LoadOnCommandInvocation="False" LoadOnAutoCADStartup="True" />
+  </Components>
+
+  <!-- Navisworks 2027 -->
+  <Components Description="Fauxel for Navisworks 2027">
+    <RuntimeRequirements OS="Win64" Platform="NAVMAN|NAVSIM" SeriesMin="Nw24" SeriesMax="Nw24" />
+    <ComponentEntry AppName="Fauxel" Version="0.1.0" ModuleName="./Contents/v24/Fauxel.Navisworks.dll" AppDescription="Fauxel connector" AppType="ManagedPlugin" LoadOnCommandInvocation="False" LoadOnAutoCADStartup="True" />
+  </Components>
+</ApplicationPackage>
