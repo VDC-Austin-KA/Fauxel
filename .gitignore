@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Node
+node_modules/
+dist/
+.expo/
+
+# Data and fixtures (downloaded by script, never committed)
+fixtures/downloaded/
+*.insv
+*.insp
+*.ifc
+*.rvt
+*.nwd
+*.nwc
+.env

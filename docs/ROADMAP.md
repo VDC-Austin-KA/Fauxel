@@ -1,0 +1,73 @@
+# Fauxel Roadmap & Status
+
+Last updated: 2026-11-20 · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (draft PR per item)
+
+Status keys: `todo` · `in-progress` · `review` (draft PR or spec awaiting KA) · `done` · `blocked`
+
+The order is a vertical slice first: the open-source path, from capture to Revit write-back, on one trade, before going wide.
+
+## Milestones
+
+| ID | Item | Phase | Depends on | Definition of done | Status |
+|---|---|---|---|---|---|
+| M0.1 | Monorepo scaffold, CI, CONTRIBUTING, docker-compose dev stack (LICENSE, docs and alignment code already on main) | 0 | — | `docker compose up` brings up PG+PostGIS+pgvector, MinIO, Redpanda. CI is green | todo |
+| M0.2 | Canonical schema DDL + migrations (projects→zones LBS, bim_models/elements, capture_sessions, trajectory_nodes, panorama_frames, detections, progress_rules, schedule_activities, evm_snapshots) | 0 | M0.1 | Migrations apply clean. Seed fixture loads. ERD in docs | todo |
+| M0.3 | Event contracts (JSON Schema per topic) + transform contract doc | 0 | M0.2 | Schemas validate sample payloads in CI | todo |
+| M1.1 | IFC connector: IfcOpenShell parse → bim_elements, storey/zone tree, meshes, BVH | 1 | M0.2 | Public buildingSMART IFC4 sample ingests (fixtures fetched by script, not committed). Element count matches IfcOpenShell. Unit tests | todo |
+| M1.2 | BCF 2.1/3.0 import/export | 1 | M1.1 | Round-trip test with a BCF file from Revit/Navis | todo |
+| M2.1 | Ingest pre-stitched equirect video/photos → keyframes (1–1.5 m / 15°, Laplacian blur filter) → MinIO | 2 | M0.1 | Keyframes plus panorama_frames rows from a sample walk | todo |
+| M2.2 | stella_vslam equirect worker → trajectory_nodes | 2 | M2.1 | Trajectory output for a sample walk; out-of-process container | todo |
+| M2.3 | AprilTag tangent-plane detection + Umeyama alignment (reuse project code) → `trajectory.aligned` | 2 | M2.2, M1.1 | RMSE < 5 cm on a synthetic test. Field tag-placement guide | todo |
+| M3.1 | Equirect visibility/occlusion projection (instance-ID + depth buffer, occlusion ratio, view-quality score) | 3 | M1.1, M2.3 | Golden-image tests on a synthetic pose | todo |
+| M4.1 | Shared spherical backbone + BIM-prior mask input, inference API (FastAPI, ONNX) | 4 | M3.1 | Runs on a sample frame; `inference.completed` emitted | todo |
+| M4.2 | First trade head: arch_interior (wall ladder) + multi-view Bayesian fusion + monotonic state machine | 4 | M4.1 | Per-wall state on a labeled test walk; mapped through progress_rules | todo |
+| M1.3 | **Revit plugin: element export + write-back** (shared params, view filters/overrides, Fauxel ribbon) | 1 | M0.2 | Builds for Revit 2025, 2026 (net8.0-windows, net10 once Autodesk's update ships) and 2027 (net10.0-windows). Updated params and colored 3D view on a sample model | todo |
+| M1.4 | Navisworks plugin: selection tree export, search sets, TimeLiner actuals sync, status appearance profiles | 1 | M0.2 | Builds for Navisworks 2025, 2026, 2027 (net48, bundle folders v22/v23/v24). Actual start/finish written to TimeLiner from Fauxel data | todo |
+| M6.1 | Schedule ingest (P6 XER/XML, MSP XML, TimeLiner) + activity↔element mapping rules | 6 | M0.2, M1.1 | Sample XER maps to elements by LBS + CSI | todo |
+| M6.2 | EVM + production velocity + slip forecast | 6 | M6.1, M4.2 | PV/EV/SPI per zone/trade from fixture data | todo |
+| M7.1 | Web portal: split 360°/BIM viewer (That Open Engine first), synced camera, status overlay | 7 | M3.1 | Viewer shows a sample walk with overlay | todo |
+| M7.2 | Executive dashboard (KPIs, heatmaps, S-curves, pay-app table) | 7 | M6.2 | Renders from the analytics API | todo |
+| M5.1 | Deviation QC: back-projection, tolerances, in-wall pre-cover alert, BCF/Issues push | 5 | M4.2, M1.2 | Critical alert fires on a synthetic drywall-over-unverified-MEP case | todo |
+| M2.4 | Raw .insv/.insp ingest: OpenCV dual-fisheye stitcher + IMU extraction (Media SDK optional) | 2 | M2.1 | Stitches a ONE X2 .insv/.insp without the SDK; X2 lens calibration stored | todo |
+| M2.5 | OpenSpace capture-source adapter (API → captures, 360 frames, sheet positions → panorama_frames + poses) | 2 | M0.2 | Pulls one capture from KA's OpenSpace account via API; frames registered with poses. Endpoint docs come from KA's OpenSpace developer access | todo |
+| M3.2 | Synthetic 360° data generator (Blender worker) + fine-tune script | 3 | M3.1 | 1k labeled frames from a sample model | todo |
+| M4.3 | Remaining trade heads: structural, HVAC, electrical, plumbing/FP | 4 | M4.2, M3.2 | Per-trade eval report | todo |
+| M1.5 | APS / Forma adapter: OAuth 2/3-legged, AEC Data Model, Model Derivative, Issues, Photos, Locations, Assets, webhooks | 1 | M1.3 | Issue with a 3D pin created from a deviation in a test hub | todo |
+| M1.6 | Speckle connector | 1 | M1.1 | Commit streamed and diffed | todo |
+| M8.1 | Field app: OSC control, floorplan-guided walk, resumable tus upload | 8 | M2.1 | Controls a ONE X2 over OSC (192.168.42.1), captures and uploads to dev | todo |
+
+## Decision log
+| Date | Decision | Source |
+|---|---|---|
+| 2026-11-20 | Open-source/OpenBIM path is the core and gets built first. Autodesk is an adapter. | KA's goal statement |
+| 2026-11-20 | C# connectors: shared netstandard2.0 core, Revit host on .NET 10, Navisworks host on net48 (overrides Phase 1 ".NET 8") | Verified platform requirements |
+| 2026-11-20 | SLAM default is stella_vslam (BSD-2, native equirect). ORB-SLAM3 is an optional GPL worker | License hygiene |
+| 2026-11-20 | Poses stored as quaternions, not roll/pitch/yaw (aligns Phase 0 with Phase 2) | Schema consistency |
+| 2026-11-20 | Wall % ladder maps to the 5-state enum through a versioned progress_rules table | Phase 0/4 consistency |
+| 2026-11-20 | Revit internal→shared uses `ProjectLocation.GetTotalTransform()`. The Python transformer is the test oracle | Avoid true-north sign errors |
+| 2026-11-20 | Treat "ACC" and "Forma" as one adapter (rebrand, same endpoints) | Mar 2026 rebrand |
+| 2026-11-20 | License: Apache-2.0 | KA deferred to Claude |
+| 2026-11-20 | OpenSpace integration via API (KA has API access). M2.5 unblocked | KA |
+| 2026-11-20 | Reference camera: Insta360 ONE X2 (OSC supported). X3/X4/X5 support stays in scope, but tests and calibration target the X2 first | KA |
+| 2026-11-20 | Supported hosts: Revit 2025–2027, Navisworks 2025–2027 | KA |
+| 2026-11-20 | Test fixtures: public IFC samples only (buildingSMART Sample-Test-Files), downloaded by script, not committed | KA |
+| 2026-11-20 | Repo: VDC-Austin-KA/Fauxel. This Project doc stays KA's live status. `docs/ROADMAP.md` in the repo is refreshed in each sprint PR | KA |
+
+## Spec gaps found in the phase docs
+1. OpenSpace is in the project goal but no phase covers it, so M2.5 was added.
+2. Phase 0 `trajectory_nodes` uses quaternions while Phase 2 outputs roll/pitch/yaw. Resolved: quaternions.
+3. Phase 4's 7-step wall ladder isn't reconciled with Phase 0's 5-state enum. Resolved: progress_rules.
+4. In `Mathematical approach.txt`, `to_revit_internal_feet` assumes the tag survey frame equals Revit internal coordinates. Tag survey coordinates need a declared frame (`internal` | `shared` | `ifc_site`) per tag set.
+5. Phase 8 targets the Insta360 Pro 2 over OSC, but Pro 2 uses the Pro Camera API. OSC exposure-lock support per model needs a hardware test.
+6. No auth/tenancy model (RBAC, project membership) is specified for the web portal or APIs. Add it to M0.2.
+7. No capture QA metric is defined (coverage %, alignment RMSE gate before inference runs). Add an RMSE gate to M2.3.
+
+## Open questions for KA
+- (none open) Answered Nov 20: license→Apache-2.0, OpenSpace→API, camera→ONE X2, hosts→2025–2027, fixtures→public IFC, repo→VDC-Austin-KA/Fauxel
+- To verify in the sprints: the Navisworks 2027 target framework (assumed net48, bundle v24) and the timing of Autodesk's Revit 2025/2026 .NET 10 update
+
+## Scheduled tasks
+| Task | Schedule (America/Chicago) | ID | State |
+|---|---|---|---|
+| Fauxel build sprint: works the next ready roadmap item (spec mode until the repo exists, then a draft PR per item), updates this file | Tue + Fri 1:17 PM | trig_018XatVShzJ5uCt9YrEUwLfZ | active, auto approval, build mode |
+| Fauxel ecosystem watch: weekly dependency/API/license check, updates ecosystem-watch.md | Mon 5:37 AM | — | not created (blocked by the approval check; KA to approve) |
