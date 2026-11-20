@@ -9,10 +9,15 @@ namespace Fauxel.Revit
 {
     static class ModelExporter
     {
+        /// <summary>Internal-to-shared transform. GetTotalTransform() maps shared -> internal, so internal -> shared is its
+        /// Inverse (community-verified usage: Autodesk Revit API forum "switch between Internal and Shared coordinates",
+        /// and chuongmep.pages.dev/posts/2023-04-24-Transform-Shared-CooridnateSystem-To-Origin). Live check still pending.</summary>
+        public static Transform InternalToShared(Document doc) => doc.ActiveProjectLocation.GetTotalTransform().Inverse;
+
         /// <summary>Internal-to-shared transform with the translation in meters (rotation unchanged).</summary>
         public static Matrix4 SharedTransformMeters(Document doc)
         {
-            var t = doc.ActiveProjectLocation.GetTotalTransform();
+            var t = InternalToShared(doc);
             return new Matrix4(new[]
             {
                 t.BasisX.X, t.BasisY.X, t.BasisZ.X, t.Origin.X,
@@ -24,7 +29,7 @@ namespace Fauxel.Revit
 
         public static BimExport Build(Document doc, string hostVersion)
         {
-            var toShared = doc.ActiveProjectLocation.GetTotalTransform();
+            var toShared = InternalToShared(doc);
             var export = new BimExport
             {
                 Source = "revit",
@@ -40,7 +45,7 @@ namespace Fauxel.Revit
             {
                 var bb = el.get_BoundingBox(null);
                 if (bb == null || el.Category == null) continue;     // no model geometry (e.g. hidden helper / empty family)
-                var (min, max) = SharedBox(bb, toShared);
+                var (min, max) = InternalBox(bb);   // contract: internal-frame meters; the server applies shared_transform
                 var (qty, unit) = Quantity(el);
                 var catName = el.Category.Name;
                 export.Elements.Add(new BimElement
@@ -62,15 +67,15 @@ namespace Fauxel.Revit
 
         static double Meters(double feet) => feet * Matrix4.FeetToMeters;
 
-        /// <summary>Axis-aligned box (meters, shared coords) around the 8 transformed corners.</summary>
-        static (double[] min, double[] max) SharedBox(BoundingBoxXYZ bb, Transform toShared)
+        /// <summary>Axis-aligned box (meters, INTERNAL coords) around the 8 corners of the element's own box transform.</summary>
+        static (double[] min, double[] max) InternalBox(BoundingBoxXYZ bb)
         {
             double[] min = { double.MaxValue, double.MaxValue, double.MaxValue }, max = { double.MinValue, double.MinValue, double.MinValue };
             foreach (var x in new[] { bb.Min.X, bb.Max.X })
                 foreach (var y in new[] { bb.Min.Y, bb.Max.Y })
                     foreach (var z in new[] { bb.Min.Z, bb.Max.Z })
                     {
-                        var p = toShared.OfPoint(bb.Transform.OfPoint(new XYZ(x, y, z)));
+                        var p = bb.Transform.OfPoint(new XYZ(x, y, z));
                         var v = new[] { Meters(p.X), Meters(p.Y), Meters(p.Z) };
                         for (int i = 0; i < 3; i++) { min[i] = Math.Min(min[i], v[i]); max[i] = Math.Max(max[i], v[i]); }
                     }
