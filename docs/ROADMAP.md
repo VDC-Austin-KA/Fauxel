@@ -89,6 +89,7 @@ Job heartbeat for long stitches; row locking between CV processing and human che
 
 ## Open questions for KA
 - Answered Nov 20: license→Apache-2.0, OpenSpace→API, camera→ONE X2, hosts→2025–2027, fixtures→public IFC, repo→VDC-Austin-KA/Fauxel
+- **Build sprint scheduled task has no push access to VDC-Austin-KA/Fauxel** (its git proxy only allows authorized repos; the Nov 20 sprint's M4.3 slice was applied and pushed from KA's main session as e509b7f). Fix: recreate the sprint task from a chat that has the repo attached, or grant the repo to scheduled runs
 - M4.3: should the API model slot refuse a trade model whose `eval.json` is not `pass` (heuristic fallback instead)? Default today: it loads any valid manifest
 - To verify in the sprints: the timing of Autodesk's Revit 2025/2026 .NET 10 update
 
