@@ -10,16 +10,17 @@ Full platform built and tested in containers (22 of 25 roadmap items done). Star
 
 | Area | Where | State |
 |---|---|---|
-| API, database, job queue, direct-to-storage uploads | `services/api`, `db/migrations` | ✅ 86 tests |
+| API, database, job queue, direct-to-storage uploads, expiring read-only public view | `services/api`, `db/migrations` | ✅ 89 tests |
 | 360° projection, change detection, fusion, schedule/EVM, BCF, QC | `services/api/fauxel_api/{vision,analytics,qc}` | ✅ |
 | ONE X2 raw stitching, IMU, AprilTag alignment | `services/capture-ingestion` | ✅ 26 tests |
-| Trade-model training, ONNX slot, synthetic data (Blender, GPL, isolated) | `services/cv-inference`, `services/synthetic-worker` | ✅ pipeline; models need real verified samples |
+| Trade-model training, ONNX slot, per-trade eval report + release gate, synthetic data (Blender, GPL, isolated) | `services/cv-inference`, `services/synthetic-worker` | ✅ pipeline + eval; models need real verified samples |
 | SLAM worker (stella_vslam) | `services/slam-worker` | ✅ image builds |
 | Revit 2025–2027 + Navisworks 2025–2027 plugins | `connectors/{dotnet-core,revit,navisworks}` | ✅ 6 builds, 47 tests; live test pending |
 | Autodesk Forma (ACC), Speckle, BCF 2.1/3.0 | `connectors/{aps-forma,ifc-speckle-bcf}` | ✅ 67 tests |
-| Web portal (Doxel-style) | `apps/web-portal` | ✅ 38 tests, demo mode |
+| Web portal (Doxel-style, federated discipline IFCs in 3D) | `apps/web-portal` | ✅ 45 tests, demo mode |
 | Field app (iOS/Android, Expo) | `apps/field-app` | 🟡 44 tests; Access + direct uploads pending |
-| Docker stack, Cloudflare (Worker, Pages, Tunnel, Access; R2 optional), Windows setup | `infra`, `scripts/windows` | ✅ full-stack smoke test 15/15 |
+| Docker stack, Cloudflare (Worker, Pages, Tunnel, Access; R2 optional), one-command Windows setup (`Start-Fauxel.ps1`) | `infra`, `scripts/windows`, `Start-Fauxel.ps1` | ✅ full-stack smoke test 15/15 |
+| Demo projects: data center, medical office, podium multifamily (6 discipline IFCs each + schedule) | `scripts/demo/make_demo.py` | ✅ |
 | OpenSpace adapter | — | ⛔ needs OpenSpace API docs |
 
 Quality gate: `scripts/check.sh` runs every suite locally (no GitHub Actions in this repo).
@@ -48,7 +49,7 @@ open http://localhost:8080                                    # portal (demo dat
 scripts/check.sh                                              # every test suite
 ```
 
-Windows production setup: [docs/setup/quickstart.md](docs/setup/quickstart.md).
+Windows: put `Start-Fauxel.ps1` in `C:\Fauxel` and run `powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1` (add `-DeployWeb` to push the portal to Cloudflare). Details: [docs/setup/quickstart.md](docs/setup/quickstart.md).
 
 ## Supported targets
 

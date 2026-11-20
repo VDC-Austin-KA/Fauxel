@@ -1,6 +1,6 @@
 # Fauxel Roadmap & Status
 
-Last updated: 2026-11-20 (full platform build) · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (Claude builds and tests locally, pushes finished files to `main`; no GitHub Actions)
+Last updated: 2026-11-20 (sprint: M4.3 eval report + release gate; demo projects; public view; one-command setup) · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (Claude builds and tests locally, pushes finished files to `main`; no GitHub Actions)
 
 Status keys: `todo` · `in-progress` · `done` (tested and pushed to main) · `blocked`
 
@@ -31,7 +31,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | M2.4 | Raw .insv/.insp ingest: OpenCV dual-fisheye stitcher + IMU extraction (Media SDK optional) | 2 | M2.1 | Stitches a ONE X2 .insv/.insp without the SDK; X2 lens calibration stored | done |
 | M2.5 | OpenSpace capture-source adapter (API → captures, 360 frames, sheet positions → panorama_frames + poses) | 2 | M0.2 | Pulls one capture from KA's OpenSpace account via API; frames registered with poses. Endpoint docs come from KA's OpenSpace developer access | blocked |
 | M3.2 | Synthetic 360° data generator (Blender worker) + fine-tune script | 3 | M3.1 | 1k labeled frames from a sample model | done |
-| M4.3 | Remaining trade heads: structural, HVAC, electrical, plumbing/FP | 4 | M4.2, M3.2 | Per-trade eval report | in-progress |
+| M4.3 | Remaining trade heads: structural, HVAC, electrical, plumbing/FP | 4 | M4.2, M3.2 | Per-trade eval report | in-progress: eval report + release gate built (`python -m fauxel_cv.evaluate`, [spec](specs/M4.3-trade-heads-eval.md)); training waits on verified samples from real walks |
 | M1.5 | APS / Forma adapter: OAuth 2/3-legged, AEC Data Model, Model Derivative, Issues, Photos, Locations, Assets, webhooks | 1 | M1.3 | Issue with a 3D pin created from a deviation in a test hub | done |
 | M1.6 | Speckle connector | 1 | M1.1 | Commit streamed and diffed | done |
 | M8.1 | Field app: OSC control, floorplan-guided walk, resumable tus upload | 8 | M2.1 | Controls a ONE X2 over OSC (192.168.42.1), captures and uploads to dev | in-progress |
@@ -61,6 +61,10 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | Local S3 is RustFS (MinIO stopped publishing community images) | Infra build |
 | 2026-11-20 | R2 is optional: media can stay in the PC's S3 storage, published through the same Tunnel at fauxel-files.<domain> (presigned uploads; Worker without R2 via `FAUXEL_MEDIA=local`). KA's live setup uses this | KA (no extra paid service) |
 | 2026-11-20 | Portal 3D model page: level/trade filters; color by installation status, current condition, or schedule variance (verified % vs. activity plan, as-of date, on-time range) | KA (ACC Model Coordination-style quick look) |
+| 2026-11-20 | Trade model release gate on capture-held-out data: n ≥ 50, precision ≥ 95% for predictions at conf ≥ 0.8 (they write verified status unreviewed), ECE ≤ 0.10, within one rung ≥ 90%. Eval scores the exported ONNX with slot preprocessing | M4.3 sprint |
+| 2026-11-20 | One-command Windows setup: `Start-Fauxel.ps1` in C:\Fauxel (prereqs, clone/update, plugins, stack, key, project, sample IFC; `-Camera`, `-Capture`, `-Cloudflare`, `-DeployWeb`). `.gitattributes` keeps container scripts LF on Windows | KA |
+| 2026-11-20 | Public sharing is a server-enforced, expiring, read-only window (`FAUXEL_PUBLIC_READ_UNTIL`; `-PublicToday`/`-Private`): keyless GET only, integrations/uploads/training closed, Access identity header ignored while open. `FAUXEL_TRUST_ACCESS_HEADER` is no longer forced on by `-Production` (unsafe under a Bypass policy) | KA (share for a day) |
+| 2026-11-20 | Demo data = three building types (data center, MOB, podium multifamily) as federated discipline IFCs (A/S/M/E/P/FP) with a P6 schedule, schedule-driven progress and QC issues (`scripts/demo/make_demo.py`). The 3D view loads every current IFC model; mock projects get type-specific fit-outs. Schedule mapping: zone activities must match their level; `Roof` is a level | KA |
 | 2026-11-20 | No GitHub Actions, Copilot or GitHub-hosted agents. Claude builds and tests locally (`scripts/check.sh`) and pushes finished files straight to `main` (no PR flow). CI workflow removed | KA |
 
 ## Spec gaps found in the phase docs
@@ -77,14 +81,15 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 - Navisworks 2025–2027: bundle loading, TimeLiner TaskEdit, color overrides on real NWC/NWD
 - ONE X2: OSC option names, raw .insv stitch calibration (`python -m fauxel_capture.insta360 refine`), phone app on device
 - APS: one live sign-in and import; Speckle against a live server
-- M4.3: trade models need verified samples from real walks before training (pipeline ready)
+- M4.3: trade models need verified samples from real walks (≥ 2 captures, ≥ 50 held-out crops per trade), then train + `python -m fauxel_cv.evaluate --strict` on KA's PC
 - M2.5: blocked on KA's OpenSpace API documentation (no endpoints guessed)
 
 ## Review follow-ups (medium/low, open)
 Job heartbeat for long stitches; row locking between CV processing and human checks; bbox-local masks + batched mesh loads for 10k+ element models; skip boxes that contain the camera; streamed multipart uploads; webhook body cap; defusedxml everywhere; Revit workshared checkout handling; Navisworks single-pass property reads; SharedParams restore order; TimeLiner date compare; phone app Access headers + direct-to-R2 uploads.
 
 ## Open questions for KA
-- (none open) Answered Nov 20: license→Apache-2.0, OpenSpace→API, camera→ONE X2, hosts→2025–2027, fixtures→public IFC, repo→VDC-Austin-KA/Fauxel
+- Answered Nov 20: license→Apache-2.0, OpenSpace→API, camera→ONE X2, hosts→2025–2027, fixtures→public IFC, repo→VDC-Austin-KA/Fauxel
+- M4.3: should the API model slot refuse a trade model whose `eval.json` is not `pass` (heuristic fallback instead)? Default today: it loads any valid manifest
 - To verify in the sprints: the timing of Autodesk's Revit 2025/2026 .NET 10 update
 
 ## Scheduled tasks

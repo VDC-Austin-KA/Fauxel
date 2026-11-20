@@ -13,6 +13,7 @@ powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1 -Camera         # on
 powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1 -Capture D:\DCIM # upload a walk
 powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1 -Cloudflare     # guided Tunnel, Worker, Pages, Access (R2 optional)
 powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1 -PublicToday    # anyone with the link can view (read-only) until 23:59; see infra/cloudflare/access-policy.md
+powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1 -DeployWeb -SkipPlugins   # after a pull: rebuild the portal, redeploy Pages + Worker (no prompts)
 ```
 
 It is safe to re-run; it reuses the API key and project in `%APPDATA%\Fauxel\settings.json`. Sections 1 to 5 below are the manual equivalent.
