@@ -62,7 +62,7 @@ export default function Viewer() {
   const overlay = useOverlay(frame?.id, overlayOn);
 
   const elementMap = useMemo(() => new Map<string, Element>((els.data?.items ?? []).map((e) => [e.element_uid, e])), [els.data]);
-  const zonePct = useMemo(() => new Map((byZone.data ?? []).map((z) => [z.zone_id, z.percent_complete])), [byZone.data]);
+  const zonePct = useMemo(() => new Map((byZone.data ?? []).flatMap((z) => (z.zone_id ? [[z.zone_id, z.percent_complete] as const] : []))), [byZone.data]);
   const cam = poseOf(frame);
 
   // default level = first level that has captures

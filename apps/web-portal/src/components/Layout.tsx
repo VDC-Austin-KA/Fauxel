@@ -8,6 +8,7 @@ const ICONS: Record<string, string> = {
   portfolio: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
   dashboard: "M4 20V10M10 20V4M16 20v-8M22 20H2",
   viewer: "M12 3 3 8v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
+  model: "M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6M9 11h6",
   verify: "M9 12l2 2 4-4M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z",
   elements: "M4 6h16M4 12h16M4 18h16",
   schedule: "M4 5h16v15H4zM4 10h16M9 3v4M15 3v4",
@@ -25,6 +26,7 @@ function Icon({ name }: { name: string }) {
 
 const PROJECT_NAV = [
   ["", "dashboard", "Dashboard"],
+  ["model", "model", "3D model"],
   ["viewer", "viewer", "Reality viewer"],
   ["verify", "verify", "Verification"],
   ["elements", "elements", "Elements"],

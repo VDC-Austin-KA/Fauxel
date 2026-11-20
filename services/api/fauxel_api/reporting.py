@@ -190,7 +190,7 @@ def activities_view(conn, pid) -> list[dict]:
     ep = element_percent(conn, pid)
     out = []
     for a in load_activities(conn, pid):
-        uids = a.pop("element_uids")
+        uids = a["element_uids"]  # kept in the response: the portal's model viewer colors elements by their activity's dates
         pct = sum(ep.get(u, 0.0) for u in uids) / len(uids) if uids else float(a["percent_complete"] or 0)
         out.append({**a, "element_count": len(uids), "percent_complete": round(pct, 2)})
     return out

@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 
 // Heavy screens (three.js, web-ifc) are code-split.
 const Viewer = lazy(() => import("./pages/Viewer"));
+const Model = lazy(() => import("./pages/Model"));
 const Verification = lazy(() => import("./pages/Verification"));
 const Elements = lazy(() => import("./pages/Elements"));
 const Schedule = lazy(() => import("./pages/Schedule"));
@@ -21,6 +22,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Portfolio />} />
           <Route path="/p/:pid" element={<Dashboard />} />
+          <Route path="/p/:pid/model" element={<Model />} />
           <Route path="/p/:pid/viewer" element={<Viewer />} />
           <Route path="/p/:pid/verify" element={<Verification />} />
           <Route path="/p/:pid/elements" element={<Elements />} />

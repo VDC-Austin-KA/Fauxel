@@ -51,6 +51,8 @@ export default function Heatmap({ pid, lbs, progress, selected, onSelect, level,
       {view === "plan" ? (
         plan.isPending ? <div className="aspect-[2/1] animate-pulse rounded-lg bg-slate-100" /> : plan.isError ? <div className="rounded-lg bg-red-50 p-3 text-xs text-red-700">Could not load the floor plan: {(plan.error as Error).message}</div> :
         <img src={plan.data} alt={`Floor plan of ${lv.name}: zones by percent complete, element footprints by status, walk path`} className="w-full rounded-lg border border-slate-200 bg-slate-50" />
+      ) : !rects.length ? (
+        <div className="rounded-lg bg-slate-50 p-4 text-center text-xs text-slate-500">No zones on {lv.name} yet (define zones in Revit / ACC, or switch to the plan view).</div>
       ) : (
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full rounded-lg bg-slate-50" role="group" aria-label={`Zone completion heatmap for ${lv.name}`}>
         {rects.map((r) => {

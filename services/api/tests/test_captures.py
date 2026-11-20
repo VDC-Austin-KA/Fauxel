@@ -236,6 +236,7 @@ def test_schedule_evm_forecast(client, pid, scene):
     acts = client.get(f"{API}/projects/{pid}/activities").json()
     assert {a["external_id"] for a in acts} == {"A1000", "A1010"}
     assert sum(a["element_count"] for a in acts) >= 1
+    assert all(len(a["element_uids"]) == a["element_count"] for a in acts)  # the portal's 3D schedule view needs the links
     tl = client.get(f"{API}/projects/{pid}/timeliner").json()
     assert {t["external_id"] for t in tl} == {"A1000", "A1010"} and all(set(t) == {"external_id", "name", "actual_start", "actual_finish", "percent_complete"} for t in tl)
     evm = client.get(f"{API}/projects/{pid}/evm?scope=trade").json()

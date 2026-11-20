@@ -130,20 +130,22 @@ export interface AlignResult { capture_id: string; transform_bim_from_slam: numb
 
 export interface ProgressSummary {
   percent_complete: number;
-  spi: number;
-  cpi: number;
-  ev: number;
-  pv: number;
+  // null until the project has a schedule / cost data (the API returns null, not 0)
+  spi: number | null;
+  cpi: number | null;
+  ev: number | null;
+  pv: number | null;
   open_deviations: number;
-  projected_finish: string;
+  projected_finish: string | null;
   planned_finish?: string;
   elements_total: number;
   elements_verified: number;
 }
 
-export interface TradeProgress { trade: Trade; percent_complete: number; elements: number; verified: number; planned_pct: number }
-export interface ZoneProgress { zone_id: string; level_id: string; trade?: Trade | null; percent_complete: number; elements: number }
-export interface TimeseriesPoint { date: string; planned_pct: number; actual_pct: number; velocity?: Partial<Record<Trade, number>> }
+// planned_pct / level_id / zone_id: absent or null from the API until a schedule / zones exist
+export interface TradeProgress { trade: Trade; percent_complete: number; elements: number; verified?: number; planned_pct?: number | null }
+export interface ZoneProgress { zone_id: string | null; level_id?: string; trade?: Trade | null; percent_complete: number; elements: number }
+export interface TimeseriesPoint { date: string; planned_pct: number | null; actual_pct: number; velocity?: Partial<Record<Trade, number>> }
 
 export interface Activity {
   id: string;
@@ -158,15 +160,17 @@ export interface Activity {
   actual_finish: string | null;
   budget_cost: number;
   percent_complete: number;
+  element_uids?: string[];
 }
 
-export interface EvmRow { scope: "trade" | "zone"; scope_key: string; pv: number; ev: number; ac: number; spi: number; cpi: number; velocity_per_week: number }
+// velocity_per_week is not in the API's /evm rows (only in /forecast activities)
+export interface EvmRow { scope: "trade" | "zone"; scope_key: string; pv: number; ev: number; ac: number; spi: number; cpi: number; velocity_per_week?: number; note?: string }
 
 export interface ForecastRisk { activity_id: string; name: string; trade: Trade; slip_days: number; reason: string }
 export interface StackingAlert { zone_id: string; week: string; trades: Trade[]; message: string }
 export interface Forecast {
-  projected_finish: string;
-  planned_finish: string;
+  projected_finish: string | null;
+  planned_finish: string | null;
   slip_days: number;
   risks: ForecastRisk[];
   stacking: StackingAlert[];

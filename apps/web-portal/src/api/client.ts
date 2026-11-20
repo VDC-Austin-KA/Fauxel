@@ -3,6 +3,7 @@ import type {
   Activity, AlignInput, AlignResult, BimModel, CaptureSession, Deviation, Element, ElementDetail, EvmRow, Forecast, Frame, Health, Lbs, Observation, ObservationInput,
   OverlayPoly, ProgressSummary, Project, TimeseriesPoint, TradeProgress, Writeback, WritebackAck, ZoneProgress,
 } from "@/lib/types";
+import { type ApiForecast, toForecast } from "./forecast";
 
 export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) ?? "/api/v1";
 
@@ -162,9 +163,18 @@ export const api = {
   project: (pid: string) => request<Project>("GET", `/projects/${pid}`),
   lbs: (pid: string) => request<Lbs>("GET", `/projects/${pid}/lbs`),
   models: (pid: string) => request<BimModel[]>("GET", `/projects/${pid}/models`),
+  // The API caps one request at 1000 rows: page through until `limit` (default 1000) rows or the end.
   elements: async (pid: string, q: ElementQuery): Promise<ElementPage> => {
-    const r = await request<Element[] | ElementPage>("GET", `/projects/${pid}/elements${qs({ ...q })}`);
-    return Array.isArray(r) ? { items: r, total: r.length } : r;
+    const want = q.limit ?? 1000, items: Element[] = [];
+    for (let offset = q.offset ?? 0; items.length < want; ) {
+      const n = Math.min(1000, want - items.length);
+      const r = await request<Element[] | ElementPage>("GET", `/projects/${pid}/elements${qs({ ...q, limit: n, offset })}`);
+      const page = Array.isArray(r) ? r : r.items;
+      items.push(...page);
+      if (page.length < n) break;
+      offset += page.length;
+    }
+    return { items, total: items.length };
   },
   element: (uid: string) => request<ElementDetail>("GET", `/elements/${uid}`),
   observe: (uid: string, b: ObservationInput) => request<Observation>("POST", `/elements/${uid}/observations`, b),
@@ -178,7 +188,10 @@ export const api = {
   timeseries: (pid: string) => request<TimeseriesPoint[]>("GET", `/projects/${pid}/progress/timeseries`),
   activities: (pid: string) => request<Activity[]>("GET", `/projects/${pid}/activities`),
   evm: (pid: string, scope: "trade" | "zone") => request<EvmRow[]>("GET", `/projects/${pid}/evm${qs({ scope })}`),
-  forecast: (pid: string) => request<Forecast>("GET", `/projects/${pid}/forecast`),
+  forecast: async (pid: string) => {
+    const [f, acts] = await Promise.all([request<ApiForecast | Forecast>("GET", `/projects/${pid}/forecast`), request<Activity[]>("GET", `/projects/${pid}/activities`)]);
+    return toForecast(f, acts);
+  },
   deviations: (pid: string) => request<Deviation[]>("GET", `/projects/${pid}/deviations`),
   patchDeviation: (id: string, b: Partial<Deviation>) => request<Deviation>("PATCH", `/deviations/${id}`, b),
   createDeviation: (pid: string, b: Partial<Deviation>) => request<Deviation>("POST", `/projects/${pid}/deviations`, b),

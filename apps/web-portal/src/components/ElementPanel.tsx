@@ -40,6 +40,9 @@ export default function ElementPanel({ uid, onClose, onOpenEvidence }: { uid: st
             <div><dt className="text-slate-500">IFC class</dt><dd className="font-medium">{q.data.ifc_class}</dd></div>
             <div><dt className="text-slate-500">Category</dt><dd className="font-medium">{q.data.category}</dd></div>
             <div className="col-span-2"><dt className="text-slate-500">Element UID</dt><dd className="break-all font-mono text-[10px] text-slate-600">{q.data.element_uid}</dd></div>
+            {([["Navisworks item", q.data.navis_item_guid], ["Revit UniqueId", q.data.revit_unique_id], ["IFC GlobalId", q.data.ifc_global_id]] as const).map(([k, v]) => v && (
+              <div key={k} className="col-span-2"><dt className="text-slate-500">{k}</dt><dd className="break-all font-mono text-[10px] text-slate-600">{v}</dd></div>
+            ))}
           </dl>
           <section aria-label="Evidence">
             <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence</h3>

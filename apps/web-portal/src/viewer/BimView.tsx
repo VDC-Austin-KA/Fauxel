@@ -23,6 +23,10 @@ interface Props {
   alignPoints: Vec3[];
   modelId?: string;
   onSource?: (s: string) => void;
+  /** Override the status color per element (Model page color modes). Return null to ghost it. */
+  colorOf?: (e: Element) => string | null;
+  /** Hide elements (level / trade filters). levelId "" means every level is "on level". */
+  visibleOf?: (e: Element) => boolean;
 }
 
 interface Scene3 {
@@ -186,7 +190,7 @@ export default function BimView(p: Props) {
     let dead = false;
     if (p.modelId && !isMock() && !ifcLoaded.current) {
       loadIfc(p.modelId, p.elements, st, () => dead).then((ok) => {
-        if (ok && !dead) { ifcLoaded.current = true; setSource("IFC (web-ifc)"); p.onSource?.("IFC"); }
+        if (ok && !dead) { ifcLoaded.current = true; setSource("IFC (web-ifc)"); p.onSource?.("IFC"); applyHighlight(); }
       }).catch(() => undefined);
     }
     return () => { dead = true; };
@@ -215,19 +219,28 @@ export default function BimView(p: Props) {
     const st = S.current;
     if (!st) return;
     const pr = propsRef.current;
+    const byUid = pr.colorOf || pr.visibleOf ? new Map(pr.elements.map((e) => [e.element_uid, e])) : null;
     for (const o of st.meshes) {
       const m = o as THREE.Mesh, mat = m.material as THREE.MeshLambertMaterial;
-      const onLevel = m.userData.levelId === pr.levelId, sel = m.userData.uid === pr.selectedUid;
-      mat.opacity = sel ? 1 : onLevel ? 0.88 : 0.1;
+      const el = byUid?.get(m.userData.uid);
+      const sel = m.userData.uid === pr.selectedUid;
+      const color = el && pr.colorOf ? pr.colorOf(el) : undefined;
+      const onLevel = (!pr.levelId || m.userData.levelId === pr.levelId) && color !== null;
+      if (color) mat.color.set(color); else if (color === undefined && m.userData.base) mat.color.copy(m.userData.base);
+      else if (color === null) mat.color.set(0xcbd5e1);
+      mat.opacity = sel ? 1 : onLevel ? 0.9 : color === null ? 0.12 : 0.1;
       mat.depthWrite = onLevel;
       mat.emissive.set(sel ? 0x38bdf8 : 0x000000);
       mat.emissiveIntensity = sel ? 0.7 : 0;
-      m.visible = true;
-      (m.children[0] as THREE.LineSegments).visible = onLevel || sel;
+      m.visible = el && pr.visibleOf ? pr.visibleOf(el) : true;
+      const edges = m.children[0] as THREE.LineSegments | undefined;
+      if (edges) edges.visible = onLevel || sel;
     }
+    // IFC geometry with no Fauxel element (spaces, openings): hidden while filters are active
+    for (const o of st.root.children[0]?.children ?? []) if (!o.userData.uid && (o as THREE.Mesh).isMesh) o.visible = !pr.visibleOf;
     st.render();
   }
-  useEffect(applyHighlight, [p.selectedUid, p.levelId, p.elements]);
+  useEffect(applyHighlight, [p.selectedUid, p.levelId, p.elements, p.colorOf, p.visibleOf]);
 
   // mode, pose and markers
   useEffect(() => {
@@ -305,13 +318,15 @@ async function loadIfc(modelId: string, elements: Element[], st: Scene3, dead: (
       bg.applyMatrix4(new THREE.Matrix4().fromArray(pg.flatTransformation));
       const color = el ? new THREE.Color(statusColor(el.state, el.percent_complete)) : new THREE.Color(0xcbd5e1);
       const m = new THREE.Mesh(bg, new THREE.MeshLambertMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
-      m.userData = { uid: el?.element_uid, levelId: el?.level_id };
+      m.userData = { uid: el?.element_uid, levelId: el?.level_id, base: color.clone() };
       group.add(m);
       g.delete();
     }
   });
   api.CloseModel(model);
   if (dead()) return false;
+  // web-ifc already returns Y-up geometry; undo the root's BIM Z-up -> Y-up rotation so it is not applied twice
+  group.rotation.x = Math.PI / 2;
   // replace the box model with the IFC meshes
   while (st.root.children.length) st.root.children.pop();
   st.root.add(group);

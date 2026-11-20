@@ -30,7 +30,7 @@ function ProjectCard({ p }: { p: Project }) {
           </div>
           <div className="mt-2"><ProgressBar value={s!.percent_complete} label={`${p.name} percent complete`} /></div>
           <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
-            <div><dt className="text-slate-500">SPI</dt><dd className={`tabnum text-base font-semibold ${spiTone(s!.spi)}`}>{s!.spi.toFixed(2)}</dd></div>
+            <div><dt className="text-slate-500">SPI</dt><dd className={`tabnum text-base font-semibold ${s!.spi == null ? "text-slate-400" : spiTone(s!.spi)}`}>{s!.spi == null ? "—" : s!.spi.toFixed(2)}</dd></div>
             <div><dt className="text-slate-500">Open QC</dt><dd className={`tabnum text-base font-semibold ${s!.open_deviations ? "text-red-600" : "text-slate-800"}`}>{s!.open_deviations}</dd></div>
             <div><dt className="text-slate-500">Last capture</dt><dd className="text-sm font-medium text-slate-800">{formatDate(last)}</dd></div>
           </dl>

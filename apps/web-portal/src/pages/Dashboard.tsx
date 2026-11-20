@@ -79,10 +79,12 @@ export default function Dashboard() {
         {sum.isPending ? Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-24" />) : s && (
           <>
             <Kpi label="Overall % complete" value={`${s.percent_complete.toFixed(1)}%`} sub={`${s.elements_verified.toLocaleString()} / ${s.elements_total.toLocaleString()} elements verified`}><div className="mt-2"><ProgressBar value={s.percent_complete} /></div></Kpi>
-            <Kpi label="SPI" value={s.spi.toFixed(2)} tone={s.spi >= 0.95 ? "good" : s.spi >= 0.85 ? "warn" : "bad"} sub={`CPI ${s.cpi.toFixed(2)}`} />
-            <Kpi label="EV vs PV" value={formatMoney(s.ev)} sub={`PV ${formatMoney(s.pv)} · ${s.ev >= s.pv ? "+" : "−"}${formatMoney(Math.abs(s.ev - s.pv))}`} tone={s.ev >= s.pv ? "good" : "warn"} />
+            {s.spi == null ? <Kpi label="SPI" value="—" sub="No schedule yet" />
+              : <Kpi label="SPI" value={s.spi.toFixed(2)} tone={s.spi >= 0.95 ? "good" : s.spi >= 0.85 ? "warn" : "bad"} sub={`CPI ${s.cpi == null ? "—" : s.cpi.toFixed(2)}`} />}
+            {s.ev == null || s.pv == null ? <Kpi label="EV vs PV" value="—" sub="No cost data yet" />
+              : <Kpi label="EV vs PV" value={formatMoney(s.ev)} sub={`PV ${formatMoney(s.pv)} · ${s.ev >= s.pv ? "+" : "−"}${formatMoney(Math.abs(s.ev - s.pv))}`} tone={s.ev >= s.pv ? "good" : "warn"} />}
             <Kpi label="Open QC deviations" value={s.open_deviations} tone={s.open_deviations ? "bad" : "good"} sub={<Link to={`/p/${pid}/qc`} className="text-sky-700 hover:underline">Review issues</Link>} />
-            <Kpi label="Projected completion" value={formatDate(s.projected_finish)} sub={s.planned_finish ? `Plan ${formatDate(s.planned_finish)}` : undefined} tone={s.planned_finish && s.projected_finish > s.planned_finish ? "warn" : "good"} />
+            <Kpi label="Projected completion" value={formatDate(s.projected_finish)} sub={s.planned_finish ? `Plan ${formatDate(s.planned_finish)}` : undefined} tone={s.planned_finish && s.projected_finish && s.projected_finish > s.planned_finish ? "warn" : "good"} />
           </>
         )}
       </div>
@@ -143,8 +145,8 @@ export default function Dashboard() {
                 {d.map((t) => (
                   <li key={t.trade} className="grid grid-cols-[130px_1fr_90px] items-center gap-3 text-sm">
                     <TradeChip trade={t.trade} />
-                    <ProgressBar value={t.percent_complete} planned={t.planned_pct} label={`${TRADE_LABELS[t.trade]} progress`} />
-                    <span className="tabnum text-right font-medium">{t.percent_complete.toFixed(0)}% <span className="text-xs font-normal text-slate-400">/ {t.planned_pct.toFixed(0)}</span></span>
+                    <ProgressBar value={t.percent_complete} planned={t.planned_pct ?? undefined} label={`${TRADE_LABELS[t.trade]} progress`} />
+                    <span className="tabnum text-right font-medium">{t.percent_complete.toFixed(0)}% <span className="text-xs font-normal text-slate-400">/ {t.planned_pct == null ? "—" : t.planned_pct.toFixed(0)}</span></span>
                   </li>
                 ))}
               </ul>

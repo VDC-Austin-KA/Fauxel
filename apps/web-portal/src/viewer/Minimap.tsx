@@ -9,8 +9,10 @@ export default function Minimap({ level, frames, current, onPick, yaw, zonePct, 
 }) {
   if (!level) return null;
   const rects = zoneRects(level);
-  const minX = Math.min(...rects.map((r) => r.x0)), maxX = Math.max(...rects.map((r) => r.x1));
-  const minY = Math.min(...rects.map((r) => r.y0)), maxY = Math.max(...rects.map((r) => r.y1));
+  // bounds cover the zones and the walk path (a level without zones still shows its frames)
+  const xs = [...rects.flatMap((r) => [r.x0, r.x1]), ...frames.map((f) => f.x)], ys = [...rects.flatMap((r) => [r.y0, r.y1]), ...frames.map((f) => f.y)];
+  if (!xs.length) return null;
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const pad = 2, W = maxX - minX + pad * 2, H = maxY - minY + pad * 2;
   const X = (x: number) => x - minX + pad, Y = (y: number) => maxY - y + pad;
   const heading = current ? quatToHeading(current.qw, current.qx, current.qy, current.qz) : 0;
