@@ -1,8 +1,8 @@
 # Fauxel Roadmap & Status
 
-Last updated: 2026-11-20 · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (draft PR per item)
+Last updated: 2026-11-20 · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (Claude builds and tests locally, pushes finished files to `main`; no GitHub Actions)
 
-Status keys: `todo` · `in-progress` · `review` (draft PR or spec awaiting KA) · `done` · `blocked`
+Status keys: `todo` · `in-progress` · `done` (tested and pushed to main) · `blocked`
 
 The order is a vertical slice first: the open-source path, from capture to Revit write-back, on one trade, before going wide.
 
@@ -10,7 +10,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 
 | ID | Item | Phase | Depends on | Definition of done | Status |
 |---|---|---|---|---|---|
-| M0.1 | Monorepo scaffold, CI, CONTRIBUTING, docker-compose dev stack (LICENSE, docs and alignment code already on main) | 0 | — | `docker compose up` brings up PG+PostGIS+pgvector, MinIO, Redpanda. CI is green | todo |
+| M0.1 | Monorepo scaffold, CONTRIBUTING, docker-compose dev stack (LICENSE, docs, alignment code and `scripts/check.sh` already on main) | 0 | — | `docker compose up` brings up PG+PostGIS+pgvector, MinIO, Redpanda. `scripts/check.sh` passes | todo |
 | M0.2 | Canonical schema DDL + migrations (projects→zones LBS, bim_models/elements, capture_sessions, trajectory_nodes, panorama_frames, detections, progress_rules, schedule_activities, evm_snapshots) | 0 | M0.1 | Migrations apply clean. Seed fixture loads. ERD in docs | todo |
 | M0.3 | Event contracts (JSON Schema per topic) + transform contract doc | 0 | M0.2 | Schemas validate sample payloads in CI | todo |
 | M1.1 | IFC connector: IfcOpenShell parse → bim_elements, storey/zone tree, meshes, BVH | 1 | M0.2 | Public buildingSMART IFC4 sample ingests (fixtures fetched by script, not committed). Element count matches IfcOpenShell. Unit tests | todo |
@@ -52,7 +52,8 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | Supported hosts: Revit 2025–2027, Navisworks 2025–2027 | KA |
 | 2026-11-20 | Navisworks 2027 stays on .NET Framework 4.8 (no .NET 8 move). All Navisworks hosts net48, delivered as an ApplicationPlugins bundle | KA confirmed; third-party 2027 SDK builds |
 | 2026-11-20 | Test fixtures: public IFC samples only (buildingSMART Sample-Test-Files), downloaded by script, not committed | KA |
-| 2026-11-20 | Repo: VDC-Austin-KA/Fauxel. This Project doc stays KA's live status. `docs/ROADMAP.md` in the repo is refreshed in each sprint PR | KA |
+| 2026-11-20 | Repo: VDC-Austin-KA/Fauxel. This Project doc is KA's live status, mirrored to `docs/ROADMAP.md` on every push | KA |
+| 2026-11-20 | No GitHub Actions, Copilot or GitHub-hosted agents. Claude builds and tests locally (`scripts/check.sh`) and pushes finished files straight to `main` (no PR flow). CI workflow removed | KA |
 
 ## Spec gaps found in the phase docs
 1. OpenSpace is in the project goal but no phase covers it, so M2.5 was added.
@@ -70,5 +71,5 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 ## Scheduled tasks
 | Task | Schedule (America/Chicago) | ID | State |
 |---|---|---|---|
-| Fauxel build sprint: works the next ready roadmap item (spec mode until the repo exists, then a draft PR per item), updates this file | Tue + Fri 1:17 PM | trig_018XatVShzJ5uCt9YrEUwLfZ | active, auto approval, build mode |
+| Fauxel build sprint: builds and tests the next ready roadmap item itself, pushes finished files to `main`, updates this file | Tue + Fri 1:17 PM | trig_018XatVShzJ5uCt9YrEUwLfZ | active, auto approval |
 | Fauxel ecosystem watch: weekly dependency/API/license check, updates ecosystem-watch.md | Mon 5:37 AM | — | not created (blocked by the approval check; KA to approve) |
