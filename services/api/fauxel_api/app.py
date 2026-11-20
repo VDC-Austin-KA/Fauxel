@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, Depends, FastAPI, Request
 
 from . import __version__
-from .auth import require_auth
+from .auth import public_window_open, require_auth
 from .config import Settings
 from .db import make_pool
 from .migrate import apply_migrations
@@ -47,7 +47,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except Exception:
             storage = False
         return {"status": "ok" if db and storage else "degraded", "db": db, "storage": storage,
-                "gpu": shutil.which("nvidia-smi") is not None}
+                "gpu": shutil.which("nvidia-smi") is not None,
+                "public_read_until": settings.public_read_until.isoformat() if public_window_open(settings) else None}
 
     app.include_router(open_router)
     for r in (projects.router, captures.router, progress.router, qc.router,

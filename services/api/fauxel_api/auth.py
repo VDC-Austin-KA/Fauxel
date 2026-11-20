@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import hmac
 import secrets
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, Request
 
 LOOPBACK = {"127.0.0.1", "::1", "localhost", "testclient"}
+# Never public, even in a read-only window: OAuth/integration flows, upload sessions, training data export.
+PUBLIC_DENY = re.compile(r"^/api/v1/(integrations/|projects/[^/]+/aps/|uploads/|training/)")
 PROXY_HEADERS = ("cf-connecting-ip", "x-forwarded-for", "cf-ray", "cf-access-authenticated-user-email", "forwarded")
 
 
@@ -45,14 +49,24 @@ def require_auth(request: Request) -> None:
     s = request.app.state.settings
     if s.auth == "off":
         return
-    if s.trust_access_header and request.headers.get("cf-access-authenticated-user-email"):
+    public = public_window_open(s)
+    # The identity header is only meaningful while Access enforces a policy; a public window means it may not.
+    if s.trust_access_header and not public and request.headers.get("cf-access-authenticated-user-email"):
         return
     key = request.headers.get("x-fauxel-key")
     if key:
         with request.app.state.pool.connection() as conn:
             if verify_key(conn, key, s.key_salt):
                 return
+    if public and request.method in ("GET", "HEAD") and not PUBLIC_DENY.match(request.url.path):
+        return
+    if public:
+        raise HTTPException(401, "read-only public view: this action needs an API key (X-Fauxel-Key)")
     raise HTTPException(401, "missing or invalid credentials (X-Fauxel-Key)")
+
+
+def public_window_open(s) -> bool:
+    return s.public_read_until is not None and datetime.now(timezone.utc) < s.public_read_until
 
 
 def require_admin(request: Request) -> None:

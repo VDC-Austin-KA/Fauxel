@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 
@@ -26,6 +27,7 @@ class Settings:
     max_direct_upload_mb: int = 20480
     auth: str = "on"  # on | off
     trust_access_header: bool = False
+    public_read_until: datetime | None = None   # read-only access without a key until this instant (timezone-aware)
     key_salt: str = "change-me"
     admin_token: str | None = None
     kafka_bootstrap: str | None = None
@@ -54,6 +56,7 @@ class Settings:
             max_direct_upload_mb=int(e("FAUXEL_MAX_DIRECT_UPLOAD_MB", cls.max_direct_upload_mb)),
             auth=e("FAUXEL_AUTH", cls.auth),
             trust_access_header=e("FAUXEL_TRUST_ACCESS_HEADER", "0") == "1",
+            public_read_until=_aware(e("FAUXEL_PUBLIC_READ_UNTIL", "")),
             key_salt=e("FAUXEL_KEY_SALT", cls.key_salt),
             admin_token=e("FAUXEL_ADMIN_TOKEN"),
             kafka_bootstrap=e("FAUXEL_KAFKA_BOOTSTRAP"),
@@ -70,3 +73,12 @@ class Settings:
         for k, v in overrides.items():
             setattr(s, k, v)
         return s
+
+
+def _aware(v: str) -> datetime | None:
+    """ISO 8601 with an offset (e.g. 2026-11-20T23:59:59-06:00). Missing, invalid or offset-less values disable the window."""
+    try:
+        d = datetime.fromisoformat(v.strip()) if v.strip() else None
+    except ValueError:
+        return None
+    return d if d is not None and d.tzinfo is not None else None

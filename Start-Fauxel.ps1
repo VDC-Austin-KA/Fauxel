@@ -32,7 +32,10 @@ param(
   [switch]$SkipPrereqs,
   [switch]$SkipPlugins,
   [switch]$SkipUpdate,
-  [switch]$SkipStack     # stack already running: only key/project/settings/sample/camera/capture
+  [switch]$SkipStack,    # stack already running: only key/project/settings/sample/camera/capture
+  [switch]$PublicToday,  # anyone with the link can VIEW (read-only, no key) until 23:59 today; the API closes it by itself
+  [datetime]$PublicUntil,# same, until a given local time, e.g. -PublicUntil '2026-11-21 18:00'
+  [switch]$Private       # close the public view now
 )
 $ErrorActionPreference = 'Continue'   # native tools (git, docker, wrangler) write progress to stderr
 $Root = $PSScriptRoot
@@ -183,6 +186,11 @@ if (-not $SkipPlugins -and (Has 'dotnet')) {
 Say 'Stack (docker compose)'
 $setupArgs = @('-InstallDir', $Root, '-SkipClone', '-Domain', $Domain)
 if ($SkipPlugins) { $setupArgs += '-SkipPlugins' }
+if ($PublicToday -and -not $PublicUntil) { $PublicUntil = (Get-Date).Date.AddDays(1).AddSeconds(-1) }
+if ($PublicUntil) {
+  # Read-only, keyless, expires on its own. Identity headers are never trusted (Access may be set to Bypass for the day).
+  Set-EnvValue 'FAUXEL_PUBLIC_READ_UNTIL' $PublicUntil.ToString('yyyy-MM-ddTHH:mm:sszzz'); Set-EnvValue 'FAUXEL_TRUST_ACCESS_HEADER' '0'
+} elseif ($Private) { Set-EnvValue 'FAUXEL_PUBLIC_READ_UNTIL' '' }
 if ((Get-EnvValue 'FAUXEL_PUBLIC_URL') -like 'https://*') { $setupArgs += '-Production' }
 $rc = if ($SkipStack) { 0 } else { Run-Child (Join-Path $Root 'scripts/windows/Setup-Fauxel.ps1') $setupArgs }
 $ApiPort = Get-EnvValue 'API_PORT'; if (-not $ApiPort) { $ApiPort = '8000' }
@@ -190,6 +198,12 @@ $PortalPort = Get-EnvValue 'PORTAL_PORT'; if (-not $PortalPort) { $PortalPort = 
 $ApiBase = "http://127.0.0.1:$ApiPort/api/v1"
 try { $h = Api 'GET' '/health'; Note 'API health' 'OK' ("db={0} storage={1} gpu={2}" -f $h.db, $h.storage, $h.gpu) }
 catch { Note 'API health' 'FAIL' "setup exit $rc; check: docker compose -f infra/docker-compose.yml logs api"; Finish 1 }
+if ($PublicUntil -or $Private) {
+  if ($h.public_read_until) { Note 'Public view' 'OK' "read-only, no key, until $($h.public_read_until) (writes still need a key)" }
+  elseif ($Private) { Note 'Public view' 'OK' 'closed: every request needs a key again' }
+  else { Note 'Public view' 'FAIL' 'API did not pick up FAUXEL_PUBLIC_READ_UNTIL; run without -SkipStack' }
+  if ($h.public_read_until) { Note 'Cloudflare Access' 'TODO' "Zero Trust > Access > Applications > Fauxel portal > Policies: add 'Public today' (Action Bypass, Include Everyone), move it to the top. Delete it tomorrow." }
+}
 
 # ------------------------------------------------------------------ 6. key, project, sample model
 Say 'API key + project'
@@ -331,9 +345,9 @@ if ($Cloudflare) {
     $out.api_url = "https://fauxel.$Domain"; $out.cf_access_client_id = $cid; $out.cf_access_client_secret = $csec
     [IO.File]::WriteAllText($SettingsPath, ($out | ConvertTo-Json)); Note 'Plugin settings' 'OK' "now point at https://fauxel.$Domain"
   }
-  Set-EnvValue 'FAUXEL_PUBLIC_URL' "https://fauxel.$Domain"; Set-EnvValue 'FAUXEL_TRUST_ACCESS_HEADER' '1'
+  Set-EnvValue 'FAUXEL_PUBLIC_URL' "https://fauxel.$Domain"
   Run-Child (Join-Path $Root 'scripts/windows/Setup-Fauxel.ps1') @('-InstallDir', $Root, '-SkipClone', '-Domain', $Domain, '-Production', '-SkipPlugins') | Out-Null
-  Note 'Production mode' 'OK' 'API restarted with the public URL and the Access header trusted'
+  Note 'Production mode' 'OK' 'API restarted with the public URL'
 }
 
 Write-Host @"

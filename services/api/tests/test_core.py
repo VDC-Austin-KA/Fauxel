@@ -74,6 +74,28 @@ def test_auth_access_header_and_admin_token(make_client):
     assert no_trust.get(f"{API}/projects", headers={"Cf-Access-Authenticated-User-Email": "ka@example.com"}).status_code == 401
 
 
+
+def test_public_read_window(make_client):
+    from datetime import datetime, timedelta, timezone
+    soon = datetime.now(timezone.utc) + timedelta(hours=2)
+    c = make_client(auth="on", trust_access_header=True, public_read_until=soon)
+    assert c.get(f"{API}/health").json()["public_read_until"] == soon.isoformat()
+    assert c.get(f"{API}/projects").status_code == 200                          # keyless read works
+    r = c.post(f"{API}/projects", json={"name": "x"})
+    assert r.status_code == 401 and "read-only" in r.json()["detail"]           # writes still need a key
+    assert c.get(f"{API}/integrations/aps/status").status_code == 401           # deny list
+    assert c.get(f"{API}/uploads/{uuid.uuid4()}").status_code == 401
+    # a forged Access identity buys nothing while the window is open
+    assert c.post(f"{API}/projects", json={"name": "x"}, headers={"Cf-Access-Authenticated-User-Email": "a@b.c"}).status_code == 401
+    past = make_client(auth="on", public_read_until=datetime.now(timezone.utc) - timedelta(seconds=1))
+    assert past.get(f"{API}/projects").status_code == 401 and past.get(f"{API}/health").json()["public_read_until"] is None
+
+
+def test_public_read_until_parsing():
+    from fauxel_api.config import _aware
+    assert _aware("2026-11-20T23:59:59-06:00").utcoffset().total_seconds() == -21600
+    assert _aware("2026-11-20T23:59:59") is None and _aware("nope") is None and _aware("") is None
+
 def test_event_schemas_and_relay(client, pid, db_url):
     # produce one event of each kind that does not need heavy setup
     client.post(f"{API}/projects/{pid}/writeback/ack", json={"host": "revit", "applied": 12, "model": "A.rvt"})

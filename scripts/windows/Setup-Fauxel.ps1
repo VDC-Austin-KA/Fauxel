@@ -184,7 +184,6 @@ function Initialize-EnvFile([bool]$UseGpu) {
   $lines = Set-EnvValue $lines 'FAUXEL_APS_CALLBACK_URL' "https://fauxel.$Domain/api/v1/integrations/aps/callback"
   if ($Production) {
     $lines = Set-EnvValue $lines 'FAUXEL_PUBLIC_URL' "https://fauxel.$Domain"
-    $lines = Set-EnvValue $lines 'FAUXEL_TRUST_ACCESS_HEADER' '1'
   }
   if ($TunnelToken) { $lines = Set-EnvValue $lines 'CLOUDFLARE_TUNNEL_TOKEN' $TunnelToken }
   if ($UseGpu -and -not (Get-EnvValue $lines 'FAUXEL_INFER_BATCH')) { $lines = Set-EnvValue $lines 'FAUXEL_INFER_BATCH' '2' }

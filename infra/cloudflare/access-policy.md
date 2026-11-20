@@ -14,7 +14,9 @@ Two Access applications, both in Zero Trust > Access > Applications. `$FAUXEL_DO
 
 Identity provider: One-time PIN works with no setup; add Google if preferred.
 
-The Worker receives `Cf-Access-Authenticated-User-Email` and `Cf-Access-Jwt-Assertion` only for requests that passed this app, and forwards the email to the API when it also sees the JWT. Set `FAUXEL_TRUST_ACCESS_HEADER=1` in `infra/.env` once the API is reachable only through the Worker origin app below.
+The Worker receives `Cf-Access-Authenticated-User-Email` and `Cf-Access-Jwt-Assertion` only for requests that passed this app, and forwards the email to the API when it also sees the JWT. Set `FAUXEL_TRUST_ACCESS_HEADER=1` in `infra/.env` once the API is reachable only through the Worker origin app below. It is optional (the portal works with an API key in Settings) and must stay `0` whenever the portal app has a Bypass policy: the Worker cannot tell a forged identity header from a real one then.
+
+**Public for a day:** `.\Start-Fauxel.ps1 -PublicToday` opens a keyless, read-only window that the API closes by itself at 23:59 (integrations, uploads and training export stay closed; writes still need a key). Then add a policy `Public today` (Action Bypass, Include Everyone) at the top of the `Fauxel portal` app, and delete it the next day. `-Private` closes the window early.
 
 Revit, Navisworks and field scripts (`fauxel-osc upload`) cannot do a browser login. They call `https://fauxel.ackerworks.com/api/v1/...` with `X-Fauxel-Key` plus the headers `CF-Access-Client-Id` and `CF-Access-Client-Secret` of the `fauxel-clients` token (Policy 2). `fauxel-osc` reads these from `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET`.
 
