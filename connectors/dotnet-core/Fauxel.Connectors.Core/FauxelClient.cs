@@ -34,6 +34,11 @@ namespace Fauxel.Connectors
             _http = handler == null ? new HttpClient() : new HttpClient(handler);
             _http.Timeout = TimeSpan.FromSeconds(Math.Max(5, settings.TimeoutSeconds));
             if (!string.IsNullOrEmpty(settings.ApiKey)) _http.DefaultRequestHeaders.Add("X-Fauxel-Key", settings.ApiKey);
+            if (!string.IsNullOrEmpty(settings.CfAccessClientId) && !string.IsNullOrEmpty(settings.CfAccessClientSecret))
+            {
+                _http.DefaultRequestHeaders.Add("CF-Access-Client-Id", settings.CfAccessClientId.Trim());
+                _http.DefaultRequestHeaders.Add("CF-Access-Client-Secret", settings.CfAccessClientSecret.Trim());
+            }
             _http.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         }
 
@@ -75,6 +80,9 @@ namespace Fauxel.Connectors
                         using (var resp = await _http.SendAsync(req).ConfigureAwait(false))
                         {
                             var text = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                            if (IsAccessLogin(resp.RequestMessage?.RequestUri, resp.Content.Headers.ContentType?.MediaType, (int)resp.StatusCode))
+                                throw new FauxelException("Cloudflare Access answered with its login page instead of the Fauxel API. " +
+                                    "Enter the Access service token (client id and secret) in Fauxel > Settings.", null, true);
                             if (resp.IsSuccessStatusCode)
                             {
                                 if (typeof(T) == typeof(string)) return (T)(object)text;
@@ -96,6 +104,14 @@ namespace Fauxel.Connectors
                 if (attempt < MaxAttempts) await Task.Delay(TimeSpan.FromTicks(RetryDelay.Ticks * attempt)).ConfigureAwait(false);
             }
             throw last;
+        }
+
+        /// <summary>True when the response is Cloudflare Access's sign-in page rather than the API (redirected or HTML).</summary>
+        public static bool IsAccessLogin(Uri finalUri, string mediaType, int status)
+        {
+            if (finalUri != null && finalUri.Host.EndsWith("cloudflareaccess.com", StringComparison.OrdinalIgnoreCase)) return true;
+            if (status >= 300 && status < 400) return true;
+            return status < 300 && string.Equals(mediaType, "text/html", StringComparison.OrdinalIgnoreCase);
         }
 
         static string Describe(HttpStatusCode code, HttpMethod method, string url, string body)

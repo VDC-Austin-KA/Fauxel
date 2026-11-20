@@ -23,6 +23,15 @@ namespace Fauxel.Navisworks
             AppDomain.CurrentDomain.AssemblyResolve += (s, e) =>
             {
                 var name = new AssemblyName(e.Name).Name;
+                if (IsBundledDependency(name))
+                {
+                    // net48 plugins get no binding redirects: System.Memory etc. ask for older versions of
+                    // System.Runtime.CompilerServices.Unsafe than the one we ship. Serve whatever version sits next to us.
+                    foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                        if (a.GetName().Name == name) return a;
+                    var own = Path.Combine(Path.GetDirectoryName(typeof(NavisCommon).Assembly.Location), name + ".dll");
+                    return File.Exists(own) ? Assembly.LoadFrom(own) : null;
+                }
                 if (!name.StartsWith("Autodesk.Navisworks.", StringComparison.Ordinal)) return null;
                 foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
                     if (a.GetName().Name == name) return a;
@@ -31,6 +40,10 @@ namespace Fauxel.Navisworks
                 return File.Exists(path) ? Assembly.LoadFrom(path) : null;
             };
         }
+
+        /// <summary>Dependencies shipped in the bundle folder that may be requested at another version.</summary>
+        public static bool IsBundledDependency(string name) =>
+            name.StartsWith("System.", StringComparison.Ordinal) || name.StartsWith("Microsoft.Bcl.", StringComparison.Ordinal);
 
         public static Document ActiveDoc()
         {

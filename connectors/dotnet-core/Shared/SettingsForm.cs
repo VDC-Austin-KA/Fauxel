@@ -8,7 +8,7 @@ namespace Fauxel.Connectors.UI
 {
     public sealed class SettingsForm : Form
     {
-        readonly TextBox _url = new TextBox(), _key = new TextBox(), _project = new TextBox();
+        readonly TextBox _url = new TextBox(), _key = new TextBox(), _project = new TextBox(), _cfId = new TextBox(), _cfSecret = new TextBox();
         readonly Label _status = new Label();
 
         SettingsForm(FauxelSettings s)
@@ -17,17 +17,20 @@ namespace Fauxel.Connectors.UI
             FormBorderStyle = FormBorderStyle.FixedDialog;
             StartPosition = FormStartPosition.CenterScreen;
             MaximizeBox = MinimizeBox = false;
-            ClientSize = new Size(460, 215);
+            ClientSize = new Size(460, 295);
 
             AddRow("API URL", _url, 15, s.ApiUrl);
             AddRow("API key", _key, 55, s.ApiKey);
             _key.UseSystemPasswordChar = true;
             AddRow("Project id", _project, 95, s.ProjectId);
+            AddRow("Access id", _cfId, 135, s.CfAccessClientId);
+            AddRow("Access secret", _cfSecret, 175, s.CfAccessClientSecret);
+            _cfSecret.UseSystemPasswordChar = true;
 
-            var test = new Button { Text = "Test connection", Left = 110, Top = 135, Width = 120 };
-            var ok = new Button { Text = "Save", Left = 285, Top = 175, Width = 80, DialogResult = DialogResult.OK };
-            var cancel = new Button { Text = "Cancel", Left = 370, Top = 175, Width = 80, DialogResult = DialogResult.Cancel };
-            _status.SetBounds(15, 168, 260, 40);
+            var test = new Button { Text = "Test connection", Left = 110, Top = 215, Width = 120 };
+            var ok = new Button { Text = "Save", Left = 285, Top = 255, Width = 80, DialogResult = DialogResult.OK };
+            var cancel = new Button { Text = "Cancel", Left = 370, Top = 255, Width = 80, DialogResult = DialogResult.Cancel };
+            _status.SetBounds(15, 248, 260, 40);
             test.Click += (o, e) => Test();
             Controls.AddRange(new Control[] { test, ok, cancel, _status });
             AcceptButton = ok; CancelButton = cancel;
@@ -44,6 +47,7 @@ namespace Fauxel.Connectors.UI
         FauxelSettings Current() => new FauxelSettings
         {
             ApiUrl = _url.Text.Trim(), ApiKey = _key.Text.Trim(), ProjectId = _project.Text.Trim(),
+            CfAccessClientId = _cfId.Text.Trim(), CfAccessClientSecret = _cfSecret.Text.Trim(),
             TimeoutSeconds = FauxelSettings.Load().TimeoutSeconds,
         };
 

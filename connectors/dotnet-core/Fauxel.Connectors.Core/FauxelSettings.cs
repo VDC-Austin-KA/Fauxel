@@ -9,6 +9,9 @@ namespace Fauxel.Connectors
         public string ApiUrl { get; set; } = "http://localhost:8000";
         public string ApiKey { get; set; } = "";
         public string ProjectId { get; set; } = "";
+        /// <summary>Cloudflare Access service token for https://fauxel.ackerworks.com (leave blank on a local/LAN API).</summary>
+        public string CfAccessClientId { get; set; } = "";
+        public string CfAccessClientSecret { get; set; } = "";
         public int TimeoutSeconds { get; set; } = 120;
 
         public static string DefaultPath =>
