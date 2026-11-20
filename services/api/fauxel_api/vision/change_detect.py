@@ -122,7 +122,11 @@ def propose_state(image_bgr, mask, trade, prev=None, baseline_feature=None) -> d
         if mp:
             conf = mp["confidence"] * (0.6 if f["n_pixels"] < MIN_PIXELS else 1.0)
             return {"state": mp["state"], "percent": mp["percent"], "confidence": round(min(conf, 0.99), 3), "feature": f}
-    change = change_score(f, baseline_feature) if baseline_feature else 0.5
+    if not baseline_feature and trade != "arch_interior" and not (prev and prev_f):
+        # No empty-scene baseline: presence of MEP/structure can't be judged. Don't invent a change score;
+        # propose the first rung with low confidence so it goes to the verification queue.
+        return {"state": ladder[0]["state"], "percent": 0, "confidence": 0.3, "feature": f}
+    change = change_score(f, baseline_feature) if baseline_feature else 0.5  # walls: texture rules don't need a baseline
     if prev and prev_f and change_score(f, prev_f) < 0.05:  # nothing moved since last time
         conf = min(0.9, 0.7 + 0.2 * (1 - change_score(f, prev_f) / 0.05)) if prev.get("percent", 0) > 0 else 0.6
         return {"state": prev["state"], "percent": prev["percent"], "confidence": round(conf, 3), "feature": f}
@@ -132,7 +136,7 @@ def propose_state(image_bgr, mask, trade, prev=None, baseline_feature=None) -> d
     pct = min(ladder, key=lambda r: abs(r["percent"] - pct))
     conf = 0.45 + 0.4 * float(np.clip(margin, 0, 1))
     if not baseline_feature:
-        conf *= 0.75
+        conf = min(conf * 0.75, 0.79)  # never auto-verify without a baseline
     if f["n_pixels"] < MIN_PIXELS:
         conf *= 0.6
     return {"state": pct["state"], "percent": pct["percent"], "confidence": round(min(conf, 0.95), 3), "feature": f}

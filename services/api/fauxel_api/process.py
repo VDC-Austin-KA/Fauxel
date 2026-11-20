@@ -91,8 +91,8 @@ def process_capture(conn, storage, cid) -> dict:
 
     rules_version, rules = load_rules(conn)
     uids = [e["element_uid"] for e in near]
-    prev = {str(r["element_uid"]): r["feature"] for r in conn.execute(
-        "SELECT DISTINCT ON (d.element_uid) d.element_uid, d.feature FROM detections d "
+    prev = {str(r["element_uid"]): {"state": r["state"], "percent": r["percent"], "feature": r["feature"]} for r in conn.execute(
+        "SELECT DISTINCT ON (d.element_uid) d.element_uid, d.state, d.percent, d.feature FROM detections d "
         "JOIN panorama_frames f ON f.id = d.frame_id JOIN capture_sessions c ON c.id = f.capture_id "
         "WHERE d.element_uid = ANY(%s) AND d.feature IS NOT NULL AND c.id <> %s AND c.captured_at < %s "
         "ORDER BY d.element_uid, c.captured_at DESC, d.view_quality DESC", (uids, cid, cap["captured_at"]))}
@@ -144,7 +144,12 @@ def process_capture(conn, storage, cid) -> dict:
                          cur_dict, ladder, rework=False)
             best = max(ds, key=lambda d: d["confidence"] * d["view_quality"] * (1 - d["occlusion_ratio"]))
             usable = any(d["occlusion_ratio"] <= 0.8 for d in ds)
-            if usable:
+            if usable and fused["confidence"] < CONFIDENCE_REVIEW:
+                # Low confidence: never touch verified status; queue the best view for a human.
+                cur.execute("UPDATE detections SET review_status = 'superseded' WHERE element_uid = %s AND review_status = 'pending'", (uid,))
+                cur.execute("UPDATE detections SET review_status = 'pending' WHERE id = %s", (best["id"],))
+                queued += 1
+            elif usable:
                 changed = not cs or cs["state"] != fused["state"] or abs(cs["percent_complete"] - fused["percent"]) > 1e-9
                 cur.execute(
                     "INSERT INTO element_status (element_uid, state, percent_complete, confidence, last_verified, evidence_frame_id, "
@@ -155,9 +160,6 @@ def process_capture(conn, storage, cid) -> dict:
                     (uid, fused["state"], fused["percent"], fused["confidence"], best["frame_id"], rules_version))
                 updated += changed
                 cur.execute("UPDATE detections SET review_status = 'superseded' WHERE element_uid = %s AND review_status = 'pending'", (uid,))
-                if fused["confidence"] < CONFIDENCE_REVIEW:
-                    cur.execute("UPDATE detections SET review_status = 'pending' WHERE id = %s", (best["id"],))
-                    queued += 1
     precover_flags(conn, pid, list(dets))
     conn.execute("UPDATE capture_sessions SET status = 'processed', error = NULL WHERE id = %s", (cid,))
     summary = {"capture_id": str(cid), "frames_processed": len(frames), "frames_skipped": total - len(frames),

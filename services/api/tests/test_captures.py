@@ -176,6 +176,25 @@ def test_process_capture(client, pid, scene, db_url):
 
 
 @pytest.mark.engines
+def test_first_walk_never_auto_verifies(client, pid, scene):
+    """Review finding #1: with no empty-scene baseline, CV proposals must queue for review, never write status."""
+    out = client.post(f"{API}/captures/{scene['cid']}/process").json()
+    assert out["elements_updated"] == 0 and out["queued_for_review"] == out["elements_observed"] >= 2
+    wb = client.get(f"{API}/projects/{pid}/writeback").json()["elements"]
+    assert all(e["status"] == "NOT_STARTED" and e["color"] == "#9ca3af" for e in wb)
+
+
+def test_prev_observation_is_passed_with_feature():
+    """Review finding #3: propose_state must receive {state, percent, feature} so the unchanged path can fire."""
+    from fauxel_api.vision.change_detect import image_features, propose_state
+    img = (np.random.default_rng(0).random((64, 128, 3)) * 255).astype(np.uint8)
+    mask = np.zeros((64, 128), bool); mask[16:48, 32:96] = True
+    f = image_features(img, mask)
+    p = propose_state(img, mask, "hvac", {"state": "INSTALLED", "percent": 80, "feature": f}, f)
+    assert (p["state"], p["percent"]) == ("INSTALLED", 80)
+
+
+@pytest.mark.engines
 def test_process_with_alignment_transform(client, pid, scene):
     """Node poses in a rotated/translated SLAM frame land in the same place after align."""
     R = Rotation.from_euler("z", 90, degrees=True).as_matrix()
