@@ -174,7 +174,7 @@ function Initialize-EnvFile([bool]$UseGpu) {
   $lines = if ($created) { [string[]](Get-Content $example) } else { [string[]](Get-Content $envPath) }
 
   $filled = 0
-  foreach ($key in @('POSTGRES_PASSWORD', 'LOCAL_S3_SECRET_KEY', 'FAUXEL_KEY_SALT', 'FAUXEL_ADMIN_TOKEN')) {
+  foreach ($key in @('POSTGRES_PASSWORD', 'LOCAL_S3_SECRET_KEY', 'FAUXEL_KEY_SALT', 'FAUXEL_ADMIN_TOKEN', 'FAUXEL_APS_WEBHOOK_SECRET')) {
     $cur = Get-EnvValue $lines $key
     if ($null -eq $cur -or $cur -eq '' -or $cur -eq 'CHANGE_ME') { $lines = Set-EnvValue $lines $key (New-Secret); $filled++ }
   }

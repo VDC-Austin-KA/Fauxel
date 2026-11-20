@@ -6,16 +6,23 @@ Fauxel aligns 360° site walks (Insta360 cameras, OpenSpace captures) to the BIM
 
 ## Status
 
-Early build. See [docs/ROADMAP.md](docs/ROADMAP.md) for milestones and the decision log.
+Full platform built and tested in containers (22 of 25 roadmap items done). Start here: [docs/setup/quickstart.md](docs/setup/quickstart.md). Roadmap and decision log: [docs/ROADMAP.md](docs/ROADMAP.md).
 
-| Area | State |
-|---|---|
-| Design briefs (phases 0–8) | ✅ [docs/phases](docs/phases) |
-| Capture → BIM alignment math + code (equirect projection, AprilTag tangent planes, Umeyama Sim(3)/SE(3), Revit/IFC frames) | ✅ [services/capture-ingestion](services/capture-ingestion), tested |
-| Schema, event contracts, dev stack | ⏳ M0.1–M0.3 |
-| IFC / BCF connector | ⏳ M1.1–M1.2 |
-| Revit write-back plugin (2025–2027) | ⏳ M1.3 |
-| Navisworks TimeLiner sync (2025–2027) | ⏳ M1.4 |
+| Area | Where | State |
+|---|---|---|
+| API, database, job queue, direct-to-storage uploads | `services/api`, `db/migrations` | ✅ 86 tests |
+| 360° projection, change detection, fusion, schedule/EVM, BCF, QC | `services/api/fauxel_api/{vision,analytics,qc}` | ✅ |
+| ONE X2 raw stitching, IMU, AprilTag alignment | `services/capture-ingestion` | ✅ 26 tests |
+| Trade-model training, ONNX slot, synthetic data (Blender, GPL, isolated) | `services/cv-inference`, `services/synthetic-worker` | ✅ pipeline; models need real verified samples |
+| SLAM worker (stella_vslam) | `services/slam-worker` | ✅ image builds |
+| Revit 2025–2027 + Navisworks 2025–2027 plugins | `connectors/{dotnet-core,revit,navisworks}` | ✅ 6 builds, 47 tests; live test pending |
+| Autodesk Forma (ACC), Speckle, BCF 2.1/3.0 | `connectors/{aps-forma,ifc-speckle-bcf}` | ✅ 67 tests |
+| Web portal (Doxel-style) | `apps/web-portal` | ✅ 38 tests, demo mode |
+| Field app (iOS/Android, Expo) | `apps/field-app` | 🟡 44 tests; Access + direct uploads pending |
+| Docker stack, Cloudflare (Worker, Pages, Tunnel, Access, R2), Windows setup | `infra`, `scripts/windows` | ✅ full-stack smoke test 15/15 |
+| OpenSpace adapter | — | ⛔ needs OpenSpace API docs |
+
+Quality gate: `scripts/check.sh` runs every suite locally (no GitHub Actions in this repo).
 
 ## Architecture
 
@@ -32,14 +39,16 @@ capture (Insta360 ONE X2+ / OpenSpace API)
 
 Planned layout: `services/`, `connectors/{revit,navisworks,aps-forma,ifc-speckle-bcf}`, `apps/{web-portal,field-app}`, `contracts/`, `db/migrations/`, `infra/`, `docs/`.
 
-## Quick start (what exists today)
+## Developer quick start
 
 ```bash
-cd services/capture-ingestion
-pip install -e ".[test]"
-pytest -q
-python -m fauxel_capture.alignment   # Sim(3) alignment demo
+docker compose -f infra/docker-compose.yml up -d --build     # db, storage, redpanda, api, worker, relay, portal
+bash infra/smoke-test.sh                                      # end-to-end check (15 steps)
+open http://localhost:8080                                    # portal (demo data when the API is unreachable)
+scripts/check.sh                                              # every test suite
 ```
+
+Windows production setup: [docs/setup/quickstart.md](docs/setup/quickstart.md).
 
 ## Supported targets
 
