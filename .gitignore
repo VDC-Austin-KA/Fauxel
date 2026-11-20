@@ -33,3 +33,6 @@ connectors/navisworks/Fauxel.bundle/Contents/
 apps/*/dist/
 *.onnx
 infra/.env
+
+# Wrangler local state (Pages / Worker deploys)
+.wrangler/

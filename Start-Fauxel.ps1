@@ -13,7 +13,8 @@
     6. Loads a public sample IFC into the project if it has no model yet, and checks elements were created
   -Camera            Connects to the Insta360 ONE X2 over its Wi-Fi (join the camera's Wi-Fi first) and shows its state
   -Capture <paths>   Uploads ONE X2 files or folders (.insv/.insp raw, or Insta360 Studio JPG/MP4 exports) to the project
-  -Cloudflare        Guided production setup for https://fauxel.<domain>: Tunnel, R2, Worker, Pages, Access
+  -Cloudflare        Guided production setup for https://fauxel.<domain>: Tunnel, Worker, Pages, Access; media stays on this PC
+                     (served through the tunnel at fauxel-files.<domain>, free) or goes to R2 (optional)
 
 .EXAMPLE
   .\Start-Fauxel.ps1
@@ -274,19 +275,25 @@ if ($Cloudflare) {
    Dashboard steps first (one time, https://one.dash.cloudflare.com):
    A. Networks > Tunnels > Create a tunnel (Cloudflared) named "fauxel". Copy its token.
       Public hostname: fauxel-origin.$Domain  ->  Service HTTP  api:8000
+      Without R2 (step D skipped) also: fauxel-files.$Domain  ->  Service HTTP  s3:9000   (no Access app on it: uploads use signed URLs)
    B. Access > Service credentials > Service Tokens > Create "fauxel-clients" (plugins, phone app, CLI) and "fauxel-worker". Copy both ids + secrets.
    C. Access > Applications (see infra\cloudflare\access-policy.md):
         - "Fauxel portal"  fauxel.$Domain       Allow: your email; Service Auth: fauxel-clients
         - "Fauxel origin"  fauxel-origin.$Domain Service Auth: fauxel-worker only
         - Bypass: fauxel.$Domain/api/v1/integrations/aps/callback and /api/v1/integrations/aps/webhook
-   D. R2 > Create bucket "fauxel-media". R2 > Manage API tokens > Create (Object Read & Write, that bucket). Copy account id, key id, secret.
+   D. (Optional, R2 must be enabled on the account) R2 > Create bucket "fauxel-media". R2 > Manage API tokens > Create (Object Read & Write, that bucket). Copy account id, key id, secret.
 "@ -ForegroundColor Gray
   Read-Host '   Press Enter once A-D are done' | Out-Null
 
   $tok = Read-Secret 'Tunnel token (step A)'
   if ($tok) { Set-EnvValue 'CLOUDFLARE_TUNNEL_TOKEN' $tok; docker compose --env-file $EnvFile -f infra/docker-compose.yml --profile tunnel up -d cloudflared | Out-Host; Note 'Tunnel' 'OK' "cloudflared container -> fauxel-origin.$Domain" }
 
-  $acct = Read-Host 'R2 account id (step D)'
+  $acct = Read-Host 'R2 account id (step D; Enter = no R2, keep media on this PC)'
+  $env:FAUXEL_MEDIA = $(if ($acct) { '' } else { 'local' })   # render-config.mjs drops the R2 binding + /media route
+  if (-not $acct) {
+    Set-EnvValue 'FAUXEL_S3_PUBLIC_ENDPOINT' "https://fauxel-files.$Domain"
+    Note 'Media' 'OK' "stays on this PC; browsers/phones upload via https://fauxel-files.$Domain (tunnel hostname from step A)"
+  }
   if ($acct) {
     $ak = Read-Secret 'R2 access key id'; $sk = Read-Secret 'R2 secret access key'
     $r2 = "https://$acct.r2.cloudflarestorage.com"

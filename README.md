@@ -19,7 +19,7 @@ Full platform built and tested in containers (22 of 25 roadmap items done). Star
 | Autodesk Forma (ACC), Speckle, BCF 2.1/3.0 | `connectors/{aps-forma,ifc-speckle-bcf}` | ✅ 67 tests |
 | Web portal (Doxel-style) | `apps/web-portal` | ✅ 38 tests, demo mode |
 | Field app (iOS/Android, Expo) | `apps/field-app` | 🟡 44 tests; Access + direct uploads pending |
-| Docker stack, Cloudflare (Worker, Pages, Tunnel, Access, R2), Windows setup | `infra`, `scripts/windows` | ✅ full-stack smoke test 15/15 |
+| Docker stack, Cloudflare (Worker, Pages, Tunnel, Access; R2 optional), Windows setup | `infra`, `scripts/windows` | ✅ full-stack smoke test 15/15 |
 | OpenSpace adapter | — | ⛔ needs OpenSpace API docs |
 
 Quality gate: `scripts/check.sh` runs every suite locally (no GitHub Actions in this repo).

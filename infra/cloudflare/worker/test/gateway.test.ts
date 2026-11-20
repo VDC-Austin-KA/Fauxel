@@ -147,5 +147,6 @@ describe("media from R2", () => {
     expect((await handle(new Request("https://fauxel.example.test/media/frames/a%20b.jpg", { headers: { "if-none-match": '"abc"' } }), env)).status).toBe(304);
     expect((await handle(new Request("https://fauxel.example.test/media/nope.jpg"), env)).status).toBe(404);
     expect((await handle(new Request("https://fauxel.example.test/media/x", { method: "PUT", body: "x" }), env)).status).toBe(405);
+    expect((await handle(new Request("https://fauxel.example.test/media/frames/a.jpg"), { ...env, MEDIA: undefined })).status).toBe(404); // FAUXEL_MEDIA=local
   });
 });

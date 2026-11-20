@@ -5,7 +5,7 @@ export interface Env {
   ORIGIN_ACCESS_CLIENT_ID?: string;
   ORIGIN_ACCESS_CLIENT_SECRET?: string;
   MEDIA_CACHE_CONTROL?: string;
-  MEDIA: R2Bucket;
+  MEDIA?: R2Bucket; // absent with FAUXEL_MEDIA=local (no R2)
 }
 
 // Hop-by-hop headers plus headers that must not be taken from the client.
@@ -75,6 +75,7 @@ export function mediaKey(pathname: string): string | null {
 
 export async function serveMedia(req: Request, env: Pick<Env, "MEDIA" | "MEDIA_CACHE_CONTROL">): Promise<Response> {
   if (req.method !== "GET" && req.method !== "HEAD") return jsonError(405, "media is read-only");
+  if (!env.MEDIA) return jsonError(404, "no R2 bucket bound (FAUXEL_MEDIA=local)");
   const key = mediaKey(new URL(req.url).pathname);
   if (!key) return jsonError(400, "bad media key");
 

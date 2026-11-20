@@ -2,7 +2,7 @@
 
 React 19 + TypeScript (strict) + Tailwind 4 + react-router + react-query + three.js + Recharts. Static build, talks to `/api/v1` (contract: `docs/specs/platform-contract.md`).
 
-Screens: Portfolio, Dashboard, Reality viewer (360 + BIM, synced rig, AR overlay, minimap, compare, 3-point align), Verification queue, Elements, Schedule & EVM, QC issues (attachments, BCF 3.0/2.1 export, BCF import), Uploads (direct multipart), Integrations (API keys, write-back, Autodesk Forma/APS, Speckle, health).
+Screens: Portfolio, Dashboard, 3D model (level/trade filters; color by installation status, current condition, or schedule variance with an as-of date and on-time range; legend toggles groups), Reality viewer (360 + BIM, synced rig, AR overlay, minimap, compare, 3-point align), Verification queue, Elements, Schedule & EVM, QC issues (attachments, BCF 3.0/2.1 export, BCF import), Uploads (direct multipart), Integrations (API keys, write-back, Autodesk Forma/APS, Speckle, health).
 
 ## Develop
 ```

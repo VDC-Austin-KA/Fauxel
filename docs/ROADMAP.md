@@ -59,6 +59,8 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | Large files upload straight to R2/S3 with presigned multipart PUTs (Cloudflare caps request bodies at 100 MB) | Field app review |
 | 2026-11-20 | Machine clients (plugins, phone app, CLI) pass Cloudflare Access with a service token (CF-Access-Client-Id/Secret) | Senior review finding #5 |
 | 2026-11-20 | Local S3 is RustFS (MinIO stopped publishing community images) | Infra build |
+| 2026-11-20 | R2 is optional: media can stay in the PC's S3 storage, published through the same Tunnel at fauxel-files.<domain> (presigned uploads; Worker without R2 via `FAUXEL_MEDIA=local`). KA's live setup uses this | KA (no extra paid service) |
+| 2026-11-20 | Portal 3D model page: level/trade filters; color by installation status, current condition, or schedule variance (verified % vs. activity plan, as-of date, on-time range) | KA (ACC Model Coordination-style quick look) |
 | 2026-11-20 | No GitHub Actions, Copilot or GitHub-hosted agents. Claude builds and tests locally (`scripts/check.sh`) and pushes finished files straight to `main` (no PR flow). CI workflow removed | KA |
 
 ## Spec gaps found in the phase docs

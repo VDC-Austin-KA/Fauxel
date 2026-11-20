@@ -28,6 +28,10 @@ Revit, Navisworks and field scripts (`fauxel-osc upload`) cannot do a browser lo
 
 Never add an Allow/Bypass-everyone policy here. Without a valid token nothing can reach the tunnel, which is what makes it safe to publish the API through `cloudflared`.
 
+## 3. `fauxel-files.$FAUXEL_DOMAIN` (only without R2): no Access app
+
+When media stays on the PC (`FAUXEL_MEDIA=local`, see `docs/setup/quickstart.md` section 5) the tunnel also publishes the stack's S3 storage at `fauxel-files.$FAUXEL_DOMAIN` → `http://s3:9000` (never the console port 9001). Do not put an Access app on it: browsers and phones PUT to presigned URLs cross-origin without Access cookies or headers. The S3 signature is the protection: the bucket has no anonymous policy, so unsigned requests get 403 (verify: `curl -si https://fauxel-files.ackerworks.com/fauxel-media/ | head -1`).
+
 ## Service tokens
 
 Zero Trust > Access > Service Auth > Create Service Token. Create two:
