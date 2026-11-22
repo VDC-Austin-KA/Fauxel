@@ -13,6 +13,7 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -124,19 +125,38 @@ def login(request: Request, project_id: Optional[uuid.UUID] = None, json: bool =
 
 @public_router.get("/integrations/aps/callback")
 def callback(request: Request, code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None,
-             conn=Depends(get_conn, scope="function")):
+             error_description: Optional[str] = None, conn=Depends(get_conn, scope="function")):
+    # A browser coming back from Autodesk gets sent back to the portal with the outcome; API clients get JSON.
+    browser = "text/html" in request.headers.get("accept", "")
+    pid = None
+
+    def fail(status: int, msg: str):
+        if browser:
+            return _back_to_portal(request, pid, {"aps_error": msg[:300]})
+        raise HTTPException(status, msg)
+
     if error or not code or not state:
-        raise HTTPException(400, f"APS login failed: {error or 'missing code/state'}")
+        return fail(400, f"APS login failed: {error_description or error or 'missing code/state'}")
     row = conn.execute("DELETE FROM oauth_states WHERE state = %s AND provider = %s RETURNING *", (state, PROVIDER)).fetchone()
     if not row or row["created_at"] < datetime.now(timezone.utc) - STATE_TTL:
-        raise HTTPException(400, "unknown or expired login state; start again at /api/v1/integrations/aps/login")
+        return fail(400, "unknown or expired login state; start again at /api/v1/integrations/aps/login")
+    pid = row["project_id"]
     cfg, tm = _cfg(request), _tm(request)
     try:
         token = aps.exchange_code(cfg, code, tm.vault.dec(row["code_verifier_enc"]))
     except aps.ApsAuthError as exc:
-        raise HTTPException(502, str(exc))
-    aps_tokens.save_three_legged(conn, tm.vault, token, row["project_id"], scopes=cfg.scopes_3lo)
-    return {"status": "connected", "project_id": row["project_id"], "refresh_token_stored": bool(token.get("refresh_token"))}
+        return fail(502, str(exc))
+    aps_tokens.save_three_legged(conn, tm.vault, token, pid, scopes=cfg.scopes_3lo)
+    if browser:
+        return _back_to_portal(request, pid, {"aps": "connected"})
+    return {"status": "connected", "project_id": pid, "refresh_token_stored": bool(token.get("refresh_token"))}
+
+
+def _back_to_portal(request: Request, pid, params: dict) -> RedirectResponse:
+    """Portal origin = the registered callback URL's origin (same host the browser used), never a request parameter."""
+    u = urlsplit(_cfg(request).callback_url or str(request.url))
+    path = f"/p/{pid}/settings" if pid else "/"
+    return RedirectResponse(urlunsplit((u.scheme, u.netloc, path, urlencode(params), "autodesk")), status_code=303)
 
 
 @router.get("/integrations/aps/status")

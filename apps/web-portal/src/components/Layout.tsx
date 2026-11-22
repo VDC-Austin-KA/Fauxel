@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
-import { modeStore } from "@/api/client";
+import { demoReason, modeStore, setModePreference } from "@/api/client";
 import { useProjects } from "@/api/hooks";
 import { cx } from "./ui";
 
@@ -98,11 +98,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           </label>
           <div className="ml-auto flex items-center gap-2">
             {mode === "mock" && (
-              <span className="rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800" title="No API reachable (or VITE_FAUXEL_MOCK=1): showing generated sample data" data-testid="demo-badge">
-                Demo data
-              </span>
+              <button type="button" onClick={() => setModePreference("auto")} className="rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 hover:bg-amber-200" title={`Showing sample data because ${demoReason || "no API is reachable"}. Click to try the live server.`} data-testid="demo-badge">
+                Demo data · try live
+              </button>
             )}
-            {mode === "live" && <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">Live API</span>}
+            {mode === "live" && <button type="button" onClick={() => setModePreference("demo")} title="Click to switch to the in-browser demo data" className="rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Live API</button>}
           </div>
         </header>
         <main id="main" className="min-h-0 flex-1 overflow-y-auto scroll-thin p-4 lg:p-6">{children}</main>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { API_BASE, KEY_STORAGE, api, download, isMock, saveBlob } from "@/api/client";
+import { API_BASE, KEY_STORAGE, api, demoReason, download, isMock, saveBlob, setModePreference } from "@/api/client";
 import { useAcks, useProjects, useSummary } from "@/api/hooks";
 import { ApsCard, SpeckleCard } from "@/components/Integrations";
 import { Button, Card, Chip, ErrorState, Loading, PageHeader, Select } from "@/components/ui";
@@ -102,7 +102,7 @@ function Status() {
   return (
     <Card title="System status" actions={<Button variant="ghost" onClick={() => q.refetch()}>Refresh</Button>}>
       {q.isPending ? <Loading /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : q.data.mock ? (
-        <div className="space-y-2 text-sm text-slate-600"><div className="flex flex-wrap gap-2"><Chip color={STATUS_COLORS.inProgress}>Demo mode</Chip><Chip color={STATUS_COLORS.installed}>db: mock</Chip><Chip color={STATUS_COLORS.installed}>storage: browser</Chip><Chip color={STATUS_COLORS.notStarted}>GPU: none (demo)</Chip></div><p className="text-xs">No API is reachable, so the portal is using its in-browser sample project. Start the API (or set <code>VITE_API_BASE</code>) and reload.</p></div>
+        <div className="space-y-2 text-sm text-slate-600"><div className="flex flex-wrap gap-2"><Chip color={STATUS_COLORS.inProgress}>Demo mode</Chip><Chip color={STATUS_COLORS.installed}>db: mock</Chip><Chip color={STATUS_COLORS.installed}>storage: browser</Chip><Chip color={STATUS_COLORS.notStarted}>GPU: none (demo)</Chip></div><p className="text-xs">Showing the in-browser sample project because {demoReason || "no API is reachable"}. On the server PC run <code>.\Start-Fauxel.ps1 -SkipPlugins</code>, then try the live server.</p><Button onClick={() => setModePreference("auto")}>Try the live server</Button></div>
       ) : (
         <div className="space-y-3 text-sm">
           <div className="flex flex-wrap gap-2">{Object.entries(q.data.body as Record<string, unknown>).map(([k, v]) => <Chip key={k} color={k === "gpu" ? (v ? STATUS_COLORS.installed : STATUS_COLORS.notStarted) : tone(v)}>{k === "gpu" ? "GPU" : k}: {v === false ? "none (CPU inference)" : v === true ? "available" : String(v)}</Chip>)}</div>

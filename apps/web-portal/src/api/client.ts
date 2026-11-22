@@ -22,17 +22,37 @@ export const modeStore = {
 };
 export const isMock = () => mode === "mock";
 
-/** Probe /health; fall back to the in-browser mock API if the backend is unreachable. */
-export async function detectMode(): Promise<Mode> {
-  if (mode === "mock") return mode;
+/** Why the portal is in demo mode ("" when live). Shown in the demo banner. */
+export let demoReason = "";
+export const MODE_STORAGE = "fauxel.mode";
+const store = (): Storage | null => (typeof localStorage !== "undefined" ? localStorage : null);
+/** Persist "demo" (always in-browser sample data) or "auto" (live server when reachable) and reload. */
+export function setModePreference(pref: "demo" | "auto") {
+  store()?.setItem(MODE_STORAGE, pref);
+  location.reload();
+}
+
+async function probe(): Promise<string> {
   try {
-    const res = await fetch(`${API_BASE}/health`, { headers: authHeaders(), signal: AbortSignal.timeout(2500) });
+    const res = await fetch(`${API_BASE}/health`, { headers: authHeaders(), signal: AbortSignal.timeout(8000), redirect: "manual" });
+    if (res.type === "opaqueredirect" || res.status === 401 || res.status === 403) return "the server asked for a sign-in (Cloudflare Access or API key)";
     const ct = res.headers.get("content-type") ?? "";
-    if (!res.ok || !ct.includes("json")) throw new Error("bad health");
-    setMode("live");
-  } catch {
-    setMode("mock");
+    if (!res.ok) return `the server answered HTTP ${res.status}`;
+    if (!ct.includes("json")) return "the server answered with a web page, not the API (tunnel or PC offline?)";
+    return "";
+  } catch (e) {
+    return (e as Error).name === "TimeoutError" ? "the server did not answer within 8 s" : "the server could not be reached";
   }
+}
+
+/** Probe /health (one retry); fall back to the in-browser mock API if the backend is unreachable. */
+export async function detectMode(): Promise<Mode> {
+  if (mode === "mock") { demoReason = "this build is demo-only (VITE_FAUXEL_MOCK=1)"; return mode; }
+  if (store()?.getItem(MODE_STORAGE) === "demo") { demoReason = "you chose demo mode"; setMode("mock"); return mode; }
+  let why = await probe();
+  if (why && !why.includes("sign-in")) why = await probe();
+  demoReason = why;
+  setMode(why ? "mock" : "live");
   return mode;
 }
 

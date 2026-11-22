@@ -58,6 +58,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | v1 CV = BIM-prior change detection; anything under 0.8 confidence goes to the human verification queue and never writes verified status; verified samples train the ONNX trade models | Senior review finding #1 |
 | 2026-11-20 | Large files upload straight to R2/S3 with presigned multipart PUTs (Cloudflare caps request bodies at 100 MB) | Field app review |
 | 2026-11-20 | Machine clients (plugins, phone app, CLI) pass Cloudflare Access with a service token (CF-Access-Client-Id/Secret) | Senior review finding #5 |
+| 2026-11-22 | Portal offers a real Autodesk sign-in and a demo Autodesk connection side by side. Demo is a saved choice (`fauxel.mode`), not a silent fallback; a failed /health probe is retried once and the reason is shown. The APS callback sends browsers back to the portal (`?aps=connected` / `aps_error`) and still returns JSON to API clients | KA could not reach his real Forma account |
 | 2026-11-20 | Local S3 is RustFS (MinIO stopped publishing community images) | Infra build |
 | 2026-11-20 | R2 is optional: media can stay in the PC's S3 storage, published through the same Tunnel at fauxel-files.<domain> (presigned uploads; Worker without R2 via `FAUXEL_MEDIA=local`). KA's live setup uses this | KA (no extra paid service) |
 | 2026-11-20 | Portal 3D model page: level/trade filters; color by installation status, current condition, or schedule variance (verified % vs. activity plan, as-of date, on-time range) | KA (ACC Model Coordination-style quick look) |
@@ -80,7 +81,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 - Revit 2025–2027: ribbon, shared parameter binding, "Fauxel Progress" view, internal→shared direction (`GetTotalTransform().Inverse`) on a model with a rotated survey point
 - Navisworks 2025–2027: bundle loading, TimeLiner TaskEdit, color overrides on real NWC/NWD
 - ONE X2: OSC option names, raw .insv stitch calibration (`python -m fauxel_capture.insta360 refine`), phone app on device
-- APS: one live sign-in and import; Speckle against a live server
+- APS: one live sign-in and import (needs the Client ID added under Forma Account Admin › Custom Integrations); Speckle against a live server
 - M4.3: trade models need verified samples from real walks (≥ 2 captures, ≥ 50 held-out crops per trade), then train + `python -m fauxel_cv.evaluate --strict` on KA's PC
 - M2.5: blocked on KA's OpenSpace API documentation (no endpoints guessed)
 

@@ -108,6 +108,16 @@ def test_login_callback_status_and_encrypted_storage(app_client, db):
     assert c.get("/api/v1/integrations/aps/callback", params={"code": "abc", "state": "forged"}).status_code == 400
     assert c.get("/api/v1/integrations/aps/callback", params={"error": "access_denied"}).status_code == 400
 
+    # a browser is sent back to the portal (same origin as the registered callback), with the outcome
+    html = {"accept": "text/html,application/xhtml+xml"}
+    pid = c.post("/api/v1/projects", json={"name": "aps-browser"}).json()["id"]
+    st = parse_qs(urlparse(c.get(f"/api/v1/integrations/aps/login?json=true&project_id={pid}").json()["authorize_url"]).query)["state"][0]
+    back = c.get("/api/v1/integrations/aps/callback", params={"code": "abc", "state": st}, headers=html, follow_redirects=False)
+    assert back.status_code == 303 and back.headers["location"] == f"http://localhost:8000/p/{pid}/settings?aps=connected#autodesk"
+    denied = c.get("/api/v1/integrations/aps/callback", params={"error": "access_denied", "error_description": "User denied"},
+                   headers=html, follow_redirects=False)
+    assert denied.status_code == 303 and denied.headers["location"] == "http://localhost:8000/?aps_error=APS+login+failed%3A+User+denied#autodesk"
+
 
 @respx.mock
 def test_expired_token_is_refreshed_and_rotated(app_client, db):
