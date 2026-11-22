@@ -164,7 +164,7 @@ export interface Activity {
 }
 
 // velocity_per_week is not in the API's /evm rows (only in /forecast activities)
-export interface EvmRow { scope: "trade" | "zone"; scope_key: string; pv: number; ev: number; ac: number; spi: number; cpi: number; velocity_per_week?: number; note?: string }
+export interface EvmRow { scope: "trade" | "zone"; scope_key: string; pv: number; ev: number; ac: number; spi: number | null; cpi: number | null; velocity_per_week?: number; note?: string }
 
 export interface ForecastRisk { activity_id: string; name: string; trade: Trade; slip_days: number; reason: string }
 export interface StackingAlert { zone_id: string; week: string; trades: Trade[]; message: string }

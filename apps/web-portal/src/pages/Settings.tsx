@@ -7,6 +7,7 @@ import { Button, Card, Chip, ErrorState, Loading, PageHeader, Select } from "@/c
 import { formatDate } from "@/lib/evm";
 import { useProjectId } from "@/lib/hooks";
 import { STATUS_COLORS } from "@/lib/status";
+import { timelinerCsv } from "@/lib/timelinerCsv";
 
 function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
   const [ok, setOk] = useState(false);
@@ -14,42 +15,27 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
 }
 
 function ApiKeys() {
-  const [name, setName] = useState("revit-plugin");
-  const [created, setCreated] = useState<{ name: string; key: string }[]>([]);
-  const [just, setJust] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const [active, setActive] = useState(() => localStorage.getItem(KEY_STORAGE) ?? "");
-  const create = async () => {
-    setBusy(true); setErr(null);
-    try { const r = await api.createKey(name.trim() || "key"); setJust(r.key); setCreated((c) => [{ name: r.name, key: r.key.slice(0, 8) + "…" }, ...c]); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
-  };
+  const [saved, setSaved] = useState(false);
   return (
     <Card title="API keys">
       <div className="space-y-4 text-sm">
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="flex flex-col gap-1 text-xs text-slate-500">Key name<input value={name} onChange={(e) => setName(e.target.value)} className="w-56 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800" /></label>
-          <Button variant="primary" onClick={create} disabled={busy}>{busy ? "Creating…" : "Create key"}</Button>
+        <div className="text-xs text-slate-600">
+          <p>Keys are created on the server PC only (the API refuses key creation through Cloudflare or this proxy). On that PC, in <code>C:\Fauxel</code>:</p>
+          <div className="mt-2 flex items-center gap-2"><code className="flex-1 break-all rounded bg-slate-100 px-2 py-1 font-mono text-[11px]">{CREATE_CMD}</code><CopyButton text={CREATE_CMD} /></div>
+          <p className="mt-1">The key is printed once. Use one key per person or plugin PC.</p>
         </div>
-        {err && <ErrorState error={err} />}
-        {just && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3" role="status">
-            <div className="text-xs font-semibold text-amber-900">Copy this key now. It is shown once and cannot be retrieved later.</div>
-            <div className="mt-2 flex items-center gap-2"><code className="flex-1 break-all rounded bg-white px-2 py-1 font-mono text-xs">{just}</code><CopyButton text={just} /><Button variant="ghost" onClick={() => setJust(null)}>Hide</Button></div>
-          </div>
-        )}
-        {created.length > 0 && <ul className="text-xs text-slate-600">{created.map((c, i) => <li key={i}>{c.name} <span className="font-mono text-slate-400">{c.key}</span></li>)}</ul>}
         <div className="border-t border-slate-100 pt-3">
-          <label className="flex flex-col gap-1 text-xs text-slate-500">Key used by this browser (sent as <code>X-Fauxel-Key</code>; leave empty behind Cloudflare Access)
-            <div className="flex gap-2"><input type="password" autoComplete="off" value={active} onChange={(e) => setActive(e.target.value)} className="w-full max-w-sm rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800" />
-              <Button onClick={() => { if (active) localStorage.setItem(KEY_STORAGE, active); else localStorage.removeItem(KEY_STORAGE); }}>Save</Button></div>
+          <label className="flex flex-col gap-1 text-xs text-slate-500">Key used by this browser (sent as <code className="inline">X-Fauxel-Key</code>; needed for live data, also behind Cloudflare Access)
+            <div className="flex gap-2"><input type="password" autoComplete="off" value={active} onChange={(e) => { setActive(e.target.value); setSaved(false); }} className="w-full max-w-sm rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-800" aria-label="API key used by this browser" />
+              <Button onClick={() => { if (active) localStorage.setItem(KEY_STORAGE, active); else localStorage.removeItem(KEY_STORAGE); setSaved(true); }}>{saved ? "Saved" : "Save"}</Button></div>
           </label>
         </div>
       </div>
     </Card>
   );
 }
-
+const CREATE_CMD = '.\\Start-Fauxel.ps1 -NewKey "name" -SkipPrereqs -SkipUpdate -SkipStack';
 function Writeback({ pid }: { pid: string }) {
   const sum = useSummary(pid);
   const acks = useAcks(pid);
@@ -66,15 +52,20 @@ function Writeback({ pid }: { pid: string }) {
           <Button variant="primary" disabled={!!busy} onClick={() => get("wb", `/projects/${pid}/writeback`, "fauxel-writeback.json")}>{busy === "wb" ? "Preparing…" : "Download write-back JSON"}</Button>
           <Button disabled={!!busy} onClick={() => get("tl", `/projects/${pid}/timeliner`, "fauxel-timeliner.json")}>TimeLiner JSON</Button>
           <Button disabled={!!busy} onClick={() => get("csv", `/projects/${pid}/export.csv`, "fauxel-progress.csv")}>Progress CSV (Power BI)</Button>
+          <Button disabled={!!busy} onClick={async () => { setBusy("tlcsv"); setErr(null); try { saveBlob(new Blob([timelinerCsv(await api.activities(pid))], { type: "text/csv" }), "fauxel-timeliner-tasks.csv"); } catch (e) { setErr((e as Error).message); } finally { setBusy(""); } }}>TimeLiner tasks CSV</Button>
         </div>
         {err && <ErrorState error={err} />}
+        <dl className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs md:grid-cols-2" aria-label="Plugin connection details">
+          <div><dt className="text-slate-500">API URL (plugin Settings)</dt><dd className="mt-0.5 flex items-center gap-2"><code className="break-all font-mono">{location.origin}</code><CopyButton text={location.origin} /></dd></div>
+          <div><dt className="text-slate-500">Project id (plugin Settings)</dt><dd className="mt-0.5 flex items-center gap-2"><code className="break-all font-mono" data-testid="project-id">{pid}</code><CopyButton text={pid} /></dd></div>
+        </dl>
         <div className="grid gap-4 md:grid-cols-2">
           <ol className="list-decimal space-y-1.5 pl-5 text-xs text-slate-600">
             <li>Install the Fauxel plugin for Revit 2025–2027 and/or Navisworks 2025–2027 (Navisworks: ApplicationPlugins bundle).</li>
-            <li>In the plugin, set the API URL to this site and paste an API key.</li>
-            <li>Click <b>Sync from Fauxel</b>: shared parameters are written per element and the plugin posts an acknowledgement.</li>
-            <li>Offline? Load the downloaded JSON through <b>Import write-back file</b>.</li>
-            <li>Navisworks: run <b>TimeLiner actuals</b> to push actual dates and percent complete.</li>
+            <li>Open <b>Settings</b> in the plugin (Revit: <b>Fauxel › Progress › Settings</b>; Navisworks: <b>Add-ins › Fauxel: Settings</b>) and paste the API URL, an API key and the project id shown here. Behind Cloudflare Access also paste a service token id and secret.</li>
+            <li>Send the model once: Revit <b>Export Model</b>, Navisworks <b>Fauxel: Export Selection Tree</b>.</li>
+            <li>After each verified walk: Revit <b>Sync Progress</b> writes the five shared parameters, the <b>Fauxel Progress</b> view and schedule. Navisworks <b>Fauxel: Apply Status Colors</b> and <b>Fauxel: Sync TimeLiner</b> (actual dates and percent complete).</li>
+            <li>Offline? Download the JSON above for the record; the plugins sync live.</li>
           </ol>
           <div className="space-y-2 text-xs">
             <div className="font-semibold uppercase tracking-wide text-slate-500">Shared parameters</div>

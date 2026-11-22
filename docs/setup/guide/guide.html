@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fauxel Setup Guide: Navisworks, Revit and fauxel.ackerworks.com</title>
+<style>
+  @page { size: Letter; margin: 0.55in 0.6in 0.6in 0.6in; }
+  :root { --navy:#0f172a; --ink:#1e293b; --mute:#64748b; --line:#e2e8f0; --blue:#0284c7; --green:#22c55e; --amber:#eab308; --red:#ef4444; --gray:#94a3b8; --bg:#f8fafc; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: Inter, "Segoe UI", Arial, sans-serif; color: var(--ink); font-size: 10.6pt; line-height: 1.45; margin: 0; }
+  h1, h2, h3 { color: var(--navy); margin: 0; }
+  h2 { font-size: 19pt; letter-spacing: -0.01em; }
+  h3 { font-size: 11.5pt; margin: 14px 0 6px; }
+  p { margin: 6px 0; }
+  code, .mono { font-family: "DejaVu Sans Mono", Consolas, monospace; font-size: 8.9pt; background: #f1f5f9; border-radius: 4px; padding: 1px 4px; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .eyebrow { font-size: 8.5pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--blue); }
+  .sechead { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid var(--navy); }
+  .num { width: 34px; height: 34px; border-radius: 9px; background: var(--navy); color: #fff; font-weight: 800; font-size: 15pt; display: flex; align-items: center; justify-content: center; flex: none; }
+  .lead { color: var(--mute); font-size: 10.2pt; margin: 2px 0 10px; }
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 8px 0; }
+  ol.steps > li { counter-increment: s; position: relative; padding: 3px 0 5px 30px; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 8.5pt; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .click { font-weight: 700; color: var(--navy); white-space: nowrap; }
+  .click::before { content: ""; }
+  .path { font-weight: 700; color: var(--navy); }
+  .path span { color: var(--gray); font-weight: 400; padding: 0 3px; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.4pt; margin: 8px 0; }
+  th { text-align: left; background: var(--navy); color: #fff; font-weight: 600; padding: 6px 8px; }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--bg); }
+  .shot { width: 100%; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 2px 10px rgba(15,23,42,.08); display: block; }
+  figure { margin: 10px 0; }
+  figcaption { font-size: 8.6pt; color: var(--mute); margin-top: 4px; }
+  .tag { display: inline-block; font-size: 7.5pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 4px; padding: 1px 6px; vertical-align: middle; }
+  .tag.local { background: #dcfce7; color: #166534; } .tag.remote { background: #e0f2fe; color: #075985; } .tag.ill { background: #f1f5f9; color: #475569; }
+  .callout { border-left: 4px solid var(--blue); background: #f0f9ff; padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 9.6pt; }
+  .callout.warn { border-color: var(--amber); background: #fefce8; }
+  .callout.ok { border-color: var(--green); background: #f0fdf4; }
+  .callout b:first-child { color: var(--navy); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fff; }
+  .card h4 { margin: 0 0 4px; font-size: 10.2pt; color: var(--navy); }
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 8.6pt; border-radius: 999px; padding: 2px 9px; border: 1px solid var(--line); margin: 2px 4px 2px 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .avoid { break-inside: avoid; }
+  /* ---------- Autodesk-like mockups (illustrations) ---------- */
+  .win { border: 1px solid #b7c0cc; border-radius: 6px; overflow: hidden; background: #fff; box-shadow: 0 2px 10px rgba(15,23,42,.10); font-family: "Segoe UI", Inter, Arial, sans-serif; font-size: 8.6pt; }
+  .tabs { display: flex; gap: 2px; background: #3b4453; padding: 4px 6px 0; }
+  .tabs div { color: #d7dde5; padding: 4px 9px; border-radius: 4px 4px 0 0; font-size: 8.2pt; }
+  .tabs div.on { background: #f3f5f7; color: #111; font-weight: 600; }
+  .ribbon { background: #f3f5f7; display: flex; gap: 0; padding: 6px 6px 0; border-bottom: 1px solid #c9d1db; }
+  .panel { border-right: 1px solid #cfd6de; padding: 2px 10px 0; display: flex; flex-direction: column; }
+  .panel .btns { display: flex; gap: 6px; align-items: flex-start; min-height: 58px; }
+  .panel .ptitle { text-align: center; color: #5b6573; font-size: 7.6pt; padding: 3px 0; border-top: 1px solid #dde3ea; margin-top: 4px; }
+  .rbtn { display: flex; flex-direction: column; align-items: center; width: 58px; text-align: center; font-size: 7.8pt; line-height: 1.15; color: #1f2937; padding: 3px; border-radius: 4px; }
+  .rbtn .ico { width: 26px; height: 26px; border-radius: 6px; margin-bottom: 3px; background: linear-gradient(135deg,#0f172a,#1e3a5f); color: #22c55e; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 11pt; }
+  .rbtn.hl { outline: 2px solid #ef4444; outline-offset: 1px; background: #fff; }
+  .sbtn { display: flex; align-items: center; gap: 5px; font-size: 7.9pt; padding: 2px 6px; border-radius: 3px; white-space: nowrap; color:#1f2937; }
+  .sbtn i { width: 12px; height: 12px; border-radius: 3px; background: #0f172a; display: inline-block; }
+  .sbtn.hl { outline: 2px solid #ef4444; background: #fff; }
+  .dlg { width: 100%; max-width: 390px; }
+  .dlg .title { background: #fff; border-bottom: 1px solid #d5dbe2; padding: 6px 10px; font-weight: 600; display: flex; justify-content: space-between; }
+  .dlg .body { padding: 10px 12px 12px; background: #f0f0f0; }
+  .row { display: flex; align-items: center; margin: 5px 0; }
+  .row label { width: 84px; color: #111; }
+  .row .tb { flex: 1; background: #fff; border: 1px solid #7a7a7a; padding: 3px 5px; font-family: "DejaVu Sans Mono", monospace; font-size: 7.6pt; height: 20px; overflow: hidden; white-space: nowrap; }
+  .wbtn { display: inline-block; border: 1px solid #adadad; background: #e1e1e1; padding: 3px 12px; font-size: 8pt; margin-right: 6px; }
+  .wbtn.pri { border-color: #0078d4; }
+  .status { margin-top: 8px; color: #166534; font-size: 7.9pt; }
+  .props .grp { background: #e6eaef; font-weight: 600; padding: 3px 8px; border-top: 1px solid #c9d1db; }
+  .props .pr { display: grid; grid-template-columns: 1.2fr 1fr; border-top: 1px solid #edf0f3; }
+  .props .pr div { padding: 3px 8px; font-size: 8pt; }
+  .props .pr div:first-child { border-right: 1px solid #edf0f3; color: #374151; }
+  .anno { color: #ef4444; font-weight: 700; font-size: 8.4pt; }
+  /* cover */
+  .cover { height: 9.75in; display: flex; flex-direction: column; justify-content: space-between; background: radial-gradient(1200px 600px at 85% 10%, #13314f 0%, #0f172a 55%); color: #e2e8f0; border-radius: 16px; padding: 0.6in 0.6in 0.5in; }
+  .cover h1 { color: #fff; font-size: 34pt; line-height: 1.08; letter-spacing: -0.02em; margin-top: 14px; }
+  .cover .sub { font-size: 13pt; color: #cbd5e1; margin-top: 12px; max-width: 5.8in; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16pt; color: #fff; }
+  .logo b { width: 34px; height: 34px; border-radius: 8px; background: #1e293b; color: #22c55e; display: flex; align-items: center; justify-content: center; font-size: 17pt; border: 1px solid #334155; }
+  .cover .toc { columns: 2; column-gap: 0.4in; font-size: 10pt; color: #cbd5e1; margin: 0; padding: 0; list-style: none; }
+  .cover .toc li { padding: 3px 0; border-bottom: 1px solid rgba(148,163,184,.18); break-inside: avoid; }
+  .cover .toc li b { color: #22c55e; display: inline-block; width: 24px; }
+  .cover .meta { font-size: 8.8pt; color: #94a3b8; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<section class="page">
+  <div class="cover">
+    <div>
+      <div class="logo"><b>F</b> Fauxel</div>
+      <h1>Setup Guide:<br>Navisworks, Revit &amp;<br>fauxel.ackerworks.com</h1>
+      <div class="sub">Every pick and click to connect the Fauxel plugins to your model, push files to the platform, and get verified field progress back into Navisworks and Revit. Works on the server PC or anywhere through fauxel.ackerworks.com.</div>
+    </div>
+    <ul class="toc">
+      <li><b>0</b> How it fits together &amp; what you need</li>
+      <li><b>1</b> Install the plugins</li>
+      <li><b>2</b> Find your API key, project id &amp; URL</li>
+      <li><b>3</b> Cloudflare service token (remote use)</li>
+      <li><b>4</b> Connect Navisworks and Revit</li>
+      <li><b>5</b> Send the model to Fauxel</li>
+      <li><b>6</b> Upload the schedule and 360° walks</li>
+      <li><b>7</b> Review progress in the portal</li>
+      <li><b>8</b> Push progress into Navisworks</li>
+      <li><b>9</b> Push progress into Revit</li>
+      <li><b>10</b> Weekly routine &amp; troubleshooting</li>
+      <li><b>A</b> Reference: files, colors, commands</li>
+    </ul>
+    <div class="meta"><span>Revit 2025–2027 · Navisworks Manage/Simulate 2025–2027</span><span>Fauxel 0.1 · November 2026</span></div>
+  </div>
+</section>
+
+<!-- ============================== 0 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">0</div><div><div class="eyebrow">Overview</div><h2>How it fits together</h2></div></div>
+  <p class="lead">Fauxel runs on one Windows PC (the <b>server PC</b>). The website and the plugins reach it either directly on that PC, or from anywhere through Cloudflare at fauxel.ackerworks.com.</p>
+
+  <svg viewBox="0 0 760 250" width="100%" style="margin:6px 0 4px">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker>
+    </defs>
+    <rect x="10" y="20" width="230" height="210" rx="14" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="24" y="44" font-size="13" font-weight="700" fill="#0f172a">Anywhere (laptop, site trailer)</text>
+    <rect x="28" y="60" width="194" height="40" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="40" y="85" font-size="12" fill="#1e293b">Browser · portal</text>
+    <rect x="28" y="110" width="194" height="40" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="40" y="135" font-size="12" fill="#1e293b">Navisworks + Fauxel plugin</text>
+    <rect x="28" y="160" width="194" height="40" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="40" y="185" font-size="12" fill="#1e293b">Revit + Fauxel plugin</text>
+
+    <rect x="280" y="55" width="200" height="140" rx="14" fill="#0f172a"/>
+    <text x="296" y="80" font-size="13" font-weight="700" fill="#fff">Cloudflare</text>
+    <text x="296" y="102" font-size="11" fill="#cbd5e1">fauxel.ackerworks.com</text>
+    <text x="296" y="124" font-size="11" fill="#22c55e">• Access login / service token</text>
+    <text x="296" y="142" font-size="11" fill="#cbd5e1">• Pages: the portal</text>
+    <text x="296" y="160" font-size="11" fill="#cbd5e1">• Worker: /api → Tunnel</text>
+    <text x="296" y="178" font-size="11" fill="#cbd5e1">• fauxel-files: uploads</text>
+
+    <rect x="520" y="20" width="230" height="210" rx="14" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="534" y="44" font-size="13" font-weight="700" fill="#0f172a">Server PC (C:\Fauxel)</text>
+    <text x="534" y="66" font-size="11" fill="#334155">Docker Desktop stack</text>
+    <rect x="536" y="76" width="198" height="26" rx="6" fill="#fff" stroke="#bbf7d0"/><text x="546" y="94" font-size="11" fill="#1e293b">API  · localhost:8000</text>
+    <rect x="536" y="108" width="198" height="26" rx="6" fill="#fff" stroke="#bbf7d0"/><text x="546" y="126" font-size="11" fill="#1e293b">Portal · localhost:8080</text>
+    <rect x="536" y="140" width="198" height="26" rx="6" fill="#fff" stroke="#bbf7d0"/><text x="546" y="158" font-size="11" fill="#1e293b">Database · files · CV worker</text>
+    <rect x="536" y="172" width="198" height="26" rx="6" fill="#fff" stroke="#bbf7d0"/><text x="546" y="190" font-size="11" fill="#1e293b">cloudflared tunnel</text>
+
+    <line x1="222" y1="125" x2="278" y2="125" stroke="#64748b" stroke-width="2" marker-end="url(#ar)" marker-start="url(#ar)"/>
+    <line x1="480" y1="125" x2="518" y2="185" stroke="#64748b" stroke-width="2" marker-end="url(#ar)" marker-start="url(#ar)"/>
+    <text x="750" y="245" font-size="10" fill="#166534" text-anchor="end">On the server PC itself the plugins talk to localhost:8000 directly</text>
+  </svg>
+
+  <h3>What you need before you start</h3>
+  <table>
+    <tr><th style="width:22%">Item</th><th style="width:16%">Used for</th><th>Where to find it</th></tr>
+    <tr><td><b>API URL</b></td><td>Plugin Settings</td><td><span class="tag local">Local</span> <code>http://localhost:8000</code> &nbsp; <span class="tag remote">Remote</span> <code>https://fauxel.ackerworks.com</code><br>Also shown with a Copy button in the portal: <span class="path">Integrations<span>›</span>Revit / Navisworks write-back</span>.</td></tr>
+    <tr><td><b>API key</b></td><td>Plugins, browser</td><td>Printed at the end of <code>Start-Fauxel.ps1</code> and saved in <code>%APPDATA%\Fauxel\settings.json</code> on the server PC. New key for someone else: step 2.</td></tr>
+    <tr><td><b>Project id</b></td><td>Plugin Settings</td><td>Portal <span class="path">Integrations<span>›</span>write-back card<span>›</span>Project id<span>›</span>Copy</span>, or the long id in the address bar: <code>/p/&lt;project id&gt;/…</code></td></tr>
+    <tr><td><b>Access id + secret</b></td><td>Plugins (remote only)</td><td>Cloudflare service token <code>fauxel-clients</code>: <span class="path">Zero Trust<span>›</span>Access controls<span>›</span>Service credentials<span>›</span>Service Tokens</span> (step 3).</td></tr>
+    <tr><td><b>Files</b></td><td>Uploads</td><td>Discipline IFCs or the Revit/Navisworks model, a P6 <code>.xer</code>/<code>.xml</code> or MS Project <code>.xml</code>, and 360° walks from the ONE X2 (<code>.insv</code>/<code>.insp</code> or Studio exports).</td></tr>
+  </table>
+  <div class="callout"><b>Local or remote?</b> Use <span class="tag local">Local</span> values when Revit or Navisworks runs on the server PC. Use <span class="tag remote">Remote</span> values on any other computer. The plugins read the same settings file, so you set it once per computer for both apps.</div>
+</section>
+
+<!-- ============================== 1 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">1</div><div><div class="eyebrow">One time per computer</div><h2>Install the plugins</h2></div></div>
+  <p class="lead">Close Revit and Navisworks first. One install covers 2025, 2026 and 2027.</p>
+  <div class="grid2">
+    <div class="card"><h4>On the server PC</h4>
+      <ol class="steps">
+        <li>Open PowerShell in <code>C:\Fauxel</code>.</li>
+        <li>Run <code>powershell -ExecutionPolicy Bypass -File .\Start-Fauxel.ps1</code></li>
+        <li>Wait for <b>Plugin build OK</b> in the summary. Both plugins are built and installed, and <code>settings.json</code> is already filled in.</li>
+      </ol>
+    </div>
+    <div class="card"><h4>On any other PC</h4>
+      <ol class="steps">
+        <li>From the server PC, copy these two folders to the same place on the other PC:
+          <br><code>%APPDATA%\Autodesk\ApplicationPlugins\Fauxel.bundle</code>
+          <br><code>%APPDATA%\Autodesk\Revit\Addins\&lt;year&gt;\Fauxel</code> and <code>Fauxel.addin</code> next to it</li>
+        <li>Paste <code>%APPDATA%</code> into the Explorer address bar to open the folder.</li>
+        <li>Then go to step 2 for a key of its own.</li>
+      </ol>
+    </div>
+  </div>
+
+  <h3>Check Navisworks <span class="tag ill">Illustration</span></h3>
+  <p>Open Navisworks, click the <span class="click">Add-ins</span> tab. Five Fauxel buttons sit in the <b>Tool Add-ins 1</b> panel.</p>
+  <div class="win avoid">
+    <div class="tabs"><div>Home</div><div>Viewpoint</div><div>Review</div><div>Animation</div><div>View</div><div>Output</div><div>Render</div><div class="on">Add-ins</div></div>
+    <div class="ribbon">
+      <div class="panel"><div class="btns" style="flex-direction:column;gap:2px">
+        <div class="sbtn"><i></i>Fauxel: Settings</div><div class="sbtn"><i></i>Fauxel: Export Selection Tree</div><div class="sbtn"><i></i>Fauxel: Sync TimeLiner</div></div>
+        <div class="ptitle">Tool Add-ins 1</div></div>
+      <div class="panel"><div class="btns" style="flex-direction:column;gap:2px">
+        <div class="sbtn"><i></i>Fauxel: Apply Status Colors</div><div class="sbtn"><i></i>Fauxel: Reset Colors</div></div>
+        <div class="ptitle">&nbsp;</div></div>
+    </div>
+  </div>
+
+  <h3>Check Revit <span class="tag ill">Illustration</span></h3>
+  <p>Open Revit. If a <b>Security – Unsigned Add-In</b> prompt appears, click <span class="click">Always Load</span>. A <b>Fauxel</b> tab with a <b>Progress</b> panel appears.</p>
+  <div class="win avoid">
+    <div class="tabs"><div>File</div><div>Architecture</div><div>Structure</div><div>Systems</div><div>Insert</div><div>Annotate</div><div>View</div><div>Manage</div><div>Add-Ins</div><div class="on">Fauxel</div></div>
+    <div class="ribbon">
+      <div class="panel"><div class="btns">
+        <div class="rbtn"><div class="ico">⚙</div>Settings</div>
+        <div style="width:1px;background:#cfd6de;margin:0 2px"></div>
+        <div class="rbtn"><div class="ico">↑</div>Export<br>Model</div>
+        <div class="rbtn"><div class="ico">↓</div>Sync<br>Progress</div>
+        <div class="rbtn"><div class="ico">✕</div>Clear<br>Overrides</div></div>
+        <div class="ptitle">Progress</div></div>
+    </div>
+  </div>
+  <div class="callout warn"><b>Buttons missing?</b> The bundle must sit in <code>%APPDATA%\Autodesk\ApplicationPlugins\Fauxel.bundle</code>. Navisworks 2027 no longer reads the old <code>Plugins</code> folder. For Revit, check that <code>Fauxel.addin</code> is in the folder for your Revit year.</div>
+</section>
+
+<!-- ============================== 2 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">2</div><div><div class="eyebrow">Connection details</div><h2>Find your API key, project id &amp; URL</h2></div></div>
+
+  <h3>API key</h3>
+  <ol class="steps">
+    <li><b>Server PC:</b> the key is already in <code>%APPDATA%\Fauxel\settings.json</code> (<code>"api_key"</code>) and printed at the end of every <code>Start-Fauxel.ps1</code> run.</li>
+    <li><b>Someone else or another PC:</b> on the server PC, in <code>C:\Fauxel</code>, run<br><code>.\Start-Fauxel.ps1 -NewKey "Jane laptop" -SkipPrereqs -SkipUpdate -SkipStack</code></li>
+    <li>Copy the key it prints. It is shown <b>once</b>, so paste it straight into the plugin Settings or a password manager.</li>
+    <li>In the portal, open <span class="path">Integrations<span>›</span>API keys</span>, paste the key in <b>Key used by this browser</b>, click <span class="click">Save</span>.</li>
+  </ol>
+  <figure><img class="shot" src="img/card-apikeys.png" style="width:48%"><figcaption>Integrations › API keys. Keys are created only on the server PC; the API refuses key creation through Cloudflare.</figcaption></figure>
+
+  <h3>API URL and project id</h3>
+  <ol class="steps">
+    <li>In the portal, pick the project in the top bar, then click <span class="click">Integrations</span> in the left menu.</li>
+    <li>In the <b>Revit / Navisworks write-back</b> card, click <span class="click">Copy</span> next to <b>Project id</b> (and <b>API URL</b> when you are on fauxel.ackerworks.com).</li>
+  </ol>
+  <figure><img class="shot" src="img/card-writeback.png" style="width:94%"><figcaption>Integrations › Revit / Navisworks write-back: API URL and project id with Copy buttons, the five shared parameters, and the download buttons used in step 8.</figcaption></figure>
+</section>
+
+<!-- ============================== 3 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">3</div><div><div class="eyebrow"><span class="tag remote">Remote</span> only, once per company</div><h2>Cloudflare service token for the plugins</h2></div></div>
+  <p class="lead">fauxel.ackerworks.com sits behind Cloudflare Access. People sign in with their email; the plugins can't, so they send a service token instead. Skip this step for local use on the server PC.</p>
+  <ol class="steps">
+    <li>Go to <b>dash.cloudflare.com</b> and sign in. Click <span class="path">Zero Trust<span>›</span>Access controls<span>›</span>Service credentials<span>›</span>Service Tokens</span>.</li>
+    <li>Click <span class="click">Create Service Token</span>. Name it <code>fauxel-clients</code>, duration <b>1 year</b> (or longer), then <span class="click">Generate token</span>.</li>
+    <li>Copy the <b>Client ID</b> and the <b>Client Secret</b>. The secret is shown only once.</li>
+    <li>Go to <span class="path">Access controls<span>›</span>Applications</span>, open <b>Fauxel portal</b> (fauxel.ackerworks.com), then <span class="click">Policies</span>.</li>
+    <li>Click <span class="click">Add a policy</span>: Name <code>Plugins</code>, Action <b>Service Auth</b>, Include <b>Service Token</b> = <code>fauxel-clients</code>. Click <span class="click">Save</span>.</li>
+    <li>Give the Client ID and Secret only to people who need the plugins. They go into the <b>Access id</b> and <b>Access secret</b> fields in step 4.</li>
+  </ol>
+
+  <div class="win avoid" style="max-width:560px;margin:10px 0">
+    <div class="title" style="background:#fff;border-bottom:1px solid #e2e8f0;padding:7px 12px;font-weight:600">Fauxel portal › Policies › Add a policy <span class="tag ill" style="float:right">Illustration</span></div>
+    <div style="padding:12px 14px;background:#fff;font-family:Inter,Arial;font-size:8.8pt">
+      <div class="row"><label style="width:110px;color:#475569">Policy name</label><div class="tb" style="font-family:Inter">Plugins</div></div>
+      <div class="row"><label style="width:110px;color:#475569">Action</label><div class="tb" style="font-family:Inter;border-color:#f59e0b">Service Auth</div></div>
+      <div style="margin:10px 0 4px;font-weight:600;color:#0f172a">Include</div>
+      <div class="row"><label style="width:110px;color:#475569">Selector</label><div class="tb" style="font-family:Inter">Service Token</div></div>
+      <div class="row"><label style="width:110px;color:#475569">Value</label><div class="tb" style="font-family:Inter">fauxel-clients</div></div>
+      <div style="margin-top:10px"><span class="wbtn pri" style="background:#2563eb;color:#fff;border-color:#2563eb;border-radius:4px">Save</span></div>
+    </div>
+  </div>
+  <div class="callout warn"><b>Keep the order.</b> Your own email policy (<b>Allow</b>) stays. Do not add an <b>Allow Everyone</b> or <b>Bypass</b> policy to the portal unless you mean to share it publicly (that needs <code>-PublicToday</code>, see the reference page).</div>
+  <div class="callout"><b>Already set up?</b> If <code>Start-Fauxel.ps1 -Cloudflare</code> was run, the token <code>fauxel-clients</code> already exists. You can't view an old secret again. Click <span class="click">Rotate</span> on the token to get a new secret (then update every plugin), or <span class="click">Refresh</span> to extend its expiry.</div>
+</section>
+
+<!-- ============================== 4 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">4</div><div><div class="eyebrow">Once per computer</div><h2>Connect Navisworks and Revit</h2></div></div>
+  <div class="grid2">
+    <div>
+      <ol class="steps">
+        <li>Open the Settings window:
+          <br>Navisworks <span class="path">Add-ins<span>›</span>Fauxel: Settings</span>
+          <br>Revit <span class="path">Fauxel<span>›</span>Progress<span>›</span>Settings</span></li>
+        <li>Fill in the fields from the table below.</li>
+        <li>Click <span class="click">Test connection</span>. Wait for <b>Connected … Project found.</b></li>
+        <li>Click <span class="click">Save</span>. Both apps now use these values (<code>%APPDATA%\Fauxel\settings.json</code>).</li>
+      </ol>
+    </div>
+    <div class="win dlg avoid">
+      <div class="title"><span>Fauxel Settings</span><span style="color:#64748b">✕</span></div>
+      <div class="body">
+        <div class="row"><label>API URL</label><div class="tb">https://fauxel.ackerworks.com</div></div>
+        <div class="row"><label>API key</label><div class="tb">••••••••••••••••••••••••</div></div>
+        <div class="row"><label>Project id</label><div class="tb">f26f0874-8b9e-4bac-b1e2-…</div></div>
+        <div class="row"><label>Access id</label><div class="tb">3a1c…access</div></div>
+        <div class="row"><label>Access secret</label><div class="tb">••••••••••••••••••••••••</div></div>
+        <div style="margin:8px 0 0 84px"><span class="wbtn">Test connection</span></div>
+        <div class="status">Connected. API status: ok, db: True, storage: True. Project found.</div>
+        <div style="text-align:right;margin-top:8px"><span class="wbtn pri">Save</span><span class="wbtn" style="margin-right:0">Cancel</span></div>
+      </div>
+      <div style="padding:3px 8px;background:#fff;border-top:1px solid #e2e8f0"><span class="tag ill">Illustration</span></div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th style="width:18%">Field</th><th style="width:36%"><span class="tag local">Local</span> on the server PC</th><th><span class="tag remote">Remote</span> any other computer</th></tr>
+    <tr><td><b>API URL</b></td><td><code>http://localhost:8000</code></td><td><code>https://fauxel.ackerworks.com</code></td></tr>
+    <tr><td><b>API key</b></td><td>The key from <code>settings.json</code> (already set by <code>Start-Fauxel.ps1</code>)</td><td>Your own key from <code>-NewKey</code> (step 2)</td></tr>
+    <tr><td><b>Project id</b></td><td colspan="2">Integrations › write-back card › Project id › Copy. One project per job; change it here to work on another job.</td></tr>
+    <tr><td><b>Access id</b></td><td>leave empty</td><td>Service token Client ID (step 3)</td></tr>
+    <tr><td><b>Access secret</b></td><td>leave empty</td><td>Service token Client Secret (step 3)</td></tr>
+  </table>
+  <div class="callout ok"><b>Good to know.</b> The API URL may include or leave out <code>/api/v1</code>; the plugin adds it. Settings are per Windows user, and the API key is stored as plain text in that file, so use one key per person and revoke it when they leave.</div>
+</section>
+
+<!-- ============================== 5 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">5</div><div><div class="eyebrow">Each new model or major revision</div><h2>Send the model to Fauxel</h2></div></div>
+  <p class="lead">Pick one source per discipline so elements are not loaded twice.</p>
+  <div class="grid3">
+    <div class="card"><h4>A · Navisworks</h4><p style="font-size:9pt">Federated NWF/NWD with every discipline's NWC appended. Best for coordination-driven jobs.</p></div>
+    <div class="card"><h4>B · Revit</h4><p style="font-size:9pt">Straight from the authoring model. Needed for shared-parameter write-back to that RVT.</p></div>
+    <div class="card"><h4>C · IFC upload</h4><p style="font-size:9pt">Discipline IFCs in the portal. No Autodesk license needed; the 3D page shows the IFC geometry.</p></div>
+  </div>
+
+  <h3>A · Export from Navisworks</h3>
+  <ol class="steps">
+    <li>Open the federated model. Make sure every discipline is appended (<span class="path">Home<span>›</span>Append</span>).</li>
+    <li>Click <span class="path">Add-ins<span>›</span>Fauxel: Export Selection Tree</span>. The whole model is sent, hidden items included.</li>
+    <li>Wait for <b>Exported N elements on M levels.</b> Levels come from each item's <b>Element › Level</b> property, or from the layer it sits on.</li>
+  </ol>
+  <h3>B · Export from Revit</h3>
+  <ol class="steps">
+    <li>Set the model's shared coordinates first (<span class="path">Manage<span>›</span>Coordinates</span>). Fauxel stores elements in the shared frame.</li>
+    <li>Click <span class="path">Fauxel<span>›</span>Progress<span>›</span>Export Model</span>.</li>
+    <li>Wait for <b>Exported N elements on M levels from "model name".</b> Structure, architecture, ducts, pipes, sprinklers, cable tray, conduit, electrical and lighting categories are included.</li>
+  </ol>
+  <h3>C · Upload IFC in the portal</h3>
+  <ol class="steps">
+    <li>Click <span class="click">Uploads</span>. In <b>BIM model (IFC)</b> drag one discipline <code>.ifc</code> in, click <span class="click">Upload</span>.</li>
+    <li>Repeat per discipline (A, S, M, E, P, FP). Uploading the same file name again makes a new version; the 3D page always shows the latest version of each.</li>
+  </ol>
+  <div class="callout"><b>One element, one id.</b> Fauxel matches elements by Revit UniqueId, IFC GlobalId or Navisworks item GUID. Elements exported from Revit, or from Revit NWCs in Navisworks, carry the Revit UniqueId, so progress can later go back to Revit too.</div>
+</section>
+
+<!-- ============================== 6 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">6</div><div><div class="eyebrow">Each schedule update and each walk</div><h2>Upload the schedule and 360° walks</h2></div></div>
+  <figure><img class="shot" src="img/uploads-c.png" style="width:74%"><figcaption>Uploads page: model, 360° capture and schedule cards. Large files go straight to storage in parts and resume after a dropped connection.</figcaption></figure>
+  <div class="grid2">
+    <div>
+      <h3>Schedule</h3>
+      <ol class="steps">
+        <li>Export from P6 as <code>.xer</code> (or P6 / MS Project <code>.xml</code>).</li>
+        <li>In <b>Schedule (P6 / MS Project)</b> drop the file, click <span class="click">Upload</span>.</li>
+        <li>Open <span class="click">Schedule &amp; EVM</span> to check activities show up.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>360° walk</h3>
+      <ol class="steps">
+        <li>Copy the walk from the ONE X2 (<code>.insv</code>/<code>.insp</code>, or Insta360 Studio JPG/MP4).</li>
+        <li>In <b>360° capture</b> pick the <b>Level</b>, check the <b>Capture date</b> and <b>Camera</b>, drop the files, click <span class="click">Upload</span>.</li>
+        <li>Or on the server PC: <code>.\Start-Fauxel.ps1 -Capture D:\DCIM\Camera01</code></li>
+      </ol>
+    </div>
+  </div>
+  <h3>How activities link to elements</h3>
+  <p>Fauxel reads each activity name for a location and a trade. Name activities so both are in the text:</p>
+  <table>
+    <tr><th style="width:26%">Put in the name</th><th>Examples that work</th></tr>
+    <tr><td><b>Level</b> (matches level names)</td><td><code>Level 2</code>, <code>L2</code>, <code>Roof</code></td></tr>
+    <tr><td><b>Zone</b> as <i>Zone X</i> or <i>Area X</i> (matches space/room names)</td><td><code>Level 1 Zone A …</code>: zone and level must both match</td></tr>
+    <tr><td><b>Trade keyword</b></td><td>Structural: <i>structural, concrete, steel, slab, column, footing, foundation, rebar, pour</i> · Arch: <i>framing, stud, drywall, partition, ceiling, door, paint, finish, flooring</i> · HVAC: <i>duct, HVAC, mechanical, VAV, AHU, chiller</i> · Electrical: <i>electrical, lighting, conduit, wire, cable, switchgear, transformer</i> · Plumbing/FP: <i>plumbing, pipe, piping, sprinkler, fire protection</i>. The first match wins, in that order: plumbing/FP, HVAC, electrical, then the rest.</td></tr>
+  </table>
+  <p style="font-size:9pt;color:#64748b">Example: <code>Level 3 HVAC duct and VAV rough-in</code> links to every HVAC element on Level 3. An activity with no level or zone links to every element of its trade.</p>
+</section>
+
+<!-- ============================== 7 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">7</div><div><div class="eyebrow">After each walk</div><h2>Review progress in the portal</h2></div></div>
+  <ol class="steps">
+    <li><span class="click">Verification</span>: confirm or correct anything the camera saw with less than 80% confidence. Only verified states are written back to the models.</li>
+    <li><span class="click">3D model</span>: pick a <b>Level</b> and <b>Trade</b>; switch between <b>Installation status</b>, <b>Current condition</b> and <b>Schedule</b> colors.</li>
+    <li><span class="click">Elements</span>: search by name or id, filter by level, zone, trade and state. Click a row for its evidence photos.</li>
+    <li><span class="click">QC issues</span>: deviations and pre-cover alerts to resolve before close-in.</li>
+  </ol>
+  <figure><img class="shot" src="img/model-c.png" style="width:74%"><figcaption>3D model page: all six discipline IFCs loaded together, colored by verified status. Pick a level to see inside.</figcaption></figure>
+  <figure><img class="shot" src="img/elements-c.png" style="width:72%"><figcaption>Elements page: the same values that go into the Fauxel_* parameters (state, percent complete, confidence, last verified).</figcaption></figure>
+</section>
+
+<!-- ============================== 8 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">8</div><div><div class="eyebrow">After each review</div><h2>Push progress into Navisworks</h2></div></div>
+  <h3>Color the model by verified status</h3>
+  <ol class="steps">
+    <li>Open the same federated model you exported in step 5.</li>
+    <li>Click <span class="path">Add-ins<span>›</span>Fauxel: Apply Status Colors</span>.</li>
+    <li>Read <b>Colored N elements (M not found in this model)</b>. Not started items also turn semi-transparent.</li>
+    <li>To undo, click <span class="path">Add-ins<span>›</span>Fauxel: Reset Colors</span>. This clears <b>all</b> permanent color overrides in the file, including your own.</li>
+  </ol>
+  <p><span class="chip"><span class="dot" style="background:#22c55e"></span>Installed</span><span class="chip"><span class="dot" style="background:#eab308"></span>In progress</span><span class="chip"><span class="dot" style="background:#ef4444"></span>Deviation</span><span class="chip"><span class="dot" style="background:#94a3b8"></span>Not started</span></p>
+
+  <h3>Write actual dates and % complete into TimeLiner</h3>
+  <p>Fauxel finds each TimeLiner task by its <b>Display ID</b> or <b>Synchronization ID</b> (= the P6 Activity ID), or else by the same task name. Build the tasks once from Fauxel's own list so they always match:</p>
+  <ol class="steps">
+    <li>Portal <span class="path">Integrations<span>›</span>write-back card<span>›</span>TimeLiner tasks CSV</span>. Save <code>fauxel-timeliner-tasks.csv</code>.</li>
+    <li>Navisworks <span class="path">Home<span>›</span>TimeLiner<span>›</span>Data Sources<span>›</span>Add<span>›</span>CSV Import</span>, pick the CSV.</li>
+    <li>In the <b>Field Selector</b>, check <b>Row 1 contains headings</b> and map the fields as shown, then <span class="click">OK</span>.</li>
+    <li>Right-click the data source › <span class="click">Rebuild Task Hierarchy</span>. Attach tasks to search sets or selections as you normally do.</li>
+    <li>Every time after: <span class="path">Add-ins<span>›</span>Fauxel: Sync TimeLiner</span>. It lists each task it updated.</li>
+  </ol>
+  <div class="win avoid" style="max-width:520px">
+    <div class="title" style="background:#fff;border-bottom:1px solid #d5dbe2;padding:6px 10px;font-weight:600">Field Selector <span class="tag ill" style="float:right">Illustration</span></div>
+    <table style="margin:0;font-size:8.4pt">
+      <tr><th style="background:#e6eaef;color:#111">TimeLiner column</th><th style="background:#e6eaef;color:#111">External field name</th></tr>
+      <tr><td>Synchronization ID</td><td><b>Activity ID</b></td></tr>
+      <tr><td>Task Name</td><td><b>Task Name</b></td></tr>
+      <tr><td>Display ID</td><td><b>Activity ID</b></td></tr>
+      <tr><td>Planned Start Date</td><td><b>Planned Start</b></td></tr>
+      <tr><td>Planned End Date</td><td><b>Planned End</b></td></tr>
+      <tr><td>Task Type</td><td><b>Task Type</b></td></tr>
+    </table>
+  </div>
+  <div class="callout"><b>Already linked to P6?</b> If your TimeLiner tasks came from the same P6 schedule and their ID column holds the P6 Activity ID, skip the CSV and run Sync TimeLiner directly. If it reports <b>0 tasks updated</b>, the IDs or names don't match: use the CSV.</div>
+</section>
+
+<!-- ============================== 9 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">9</div><div><div class="eyebrow">After each review</div><h2>Push progress into Revit</h2></div></div>
+  <ol class="steps">
+    <li>Workshared model? <span class="click">Synchronize with Central</span> first, and make sure nobody else has the elements checked out. Fauxel can't edit elements owned by someone else.</li>
+    <li>Click <span class="path">Fauxel<span>›</span>Progress<span>›</span>Sync Progress</span>.</li>
+    <li>Read <b>Updated N elements (M not found in this model)</b>. It is one undo step.</li>
+    <li>Open the 3D view <b>Fauxel Progress</b> (colored by status) and the schedule <b>Fauxel Progress Schedule</b> in the Project Browser.</li>
+    <li>To remove the colors: <span class="path">Fauxel<span>›</span>Progress<span>›</span>Clear Overrides</span> (only the Fauxel Progress view is touched).</li>
+  </ol>
+  <div class="grid2">
+    <div>
+      <h3>What gets written</h3>
+      <p style="font-size:9.2pt">Five shared parameters, bound as instance parameters in the <b>Data</b> group on the tracked categories. The GUIDs are fixed, so filters, schedules and tags you build on them keep working in every model.</p>
+      <table>
+        <tr><th>Parameter</th><th>Type</th><th>Example</th></tr>
+        <tr><td><code>Fauxel_PercentComplete</code></td><td>Number</td><td>80</td></tr>
+        <tr><td><code>Fauxel_Status</code></td><td>Text</td><td>INSTALLED</td></tr>
+        <tr><td><code>Fauxel_LastVerified</code></td><td>Text</td><td>2026-11-22T14:05:00+00:00</td></tr>
+        <tr><td><code>Fauxel_Confidence</code></td><td>Number</td><td>0.95</td></tr>
+        <tr><td><code>Fauxel_EvidenceUrl</code></td><td>URL</td><td>link to the photo</td></tr>
+      </table>
+      <p style="font-size:8.8pt;color:#64748b">Status values: NOT_STARTED, FRAMED_OR_ROUGHED, INSTALLED, INSULATED_OR_FINISHED, DEVIATION_FLAGGED.</p>
+    </div>
+    <div>
+      <h3>Where to see it <span class="tag ill">Illustration</span></h3>
+      <div class="win props avoid">
+        <div class="title" style="background:#fff;border-bottom:1px solid #d5dbe2;padding:6px 10px;font-weight:600">Properties</div>
+        <div style="padding:6px 8px;border-bottom:1px solid #edf0f3"><b>Duct</b> · Rectangular Duct 900×450</div>
+        <div class="grp">Constraints</div>
+        <div class="pr"><div>Reference Level</div><div>Level 2</div></div>
+        <div class="grp">Data</div>
+        <div class="pr"><div>Fauxel_PercentComplete</div><div>80</div></div>
+        <div class="pr"><div>Fauxel_Status</div><div>INSTALLED</div></div>
+        <div class="pr"><div>Fauxel_LastVerified</div><div>2026-11-22T14:05:00+00:00</div></div>
+        <div class="pr"><div>Fauxel_Confidence</div><div>0.95</div></div>
+        <div class="pr"><div>Fauxel_EvidenceUrl</div><div style="color:#2563eb">https://fauxel…</div></div>
+      </div>
+      <div class="callout ok" style="margin-top:10px"><b>Navisworks too.</b> Re-export the NWC after Sync Progress and the five values show up in Navisworks Properties, ready for search sets like "Fauxel_Status = DEVIATION_FLAGGED".</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 10 ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">10</div><div><div class="eyebrow">Keep it running</div><h2>Weekly routine &amp; troubleshooting</h2></div></div>
+  <div class="grid3" style="margin-bottom:8px">
+    <div class="card"><h4>1 · Walk</h4><p style="font-size:9pt">ONE X2 walk per level. Upload in <b>Uploads › 360° capture</b>.</p></div>
+    <div class="card"><h4>2 · Review</h4><p style="font-size:9pt">Clear the <b>Verification</b> queue, check <b>QC issues</b>.</p></div>
+    <div class="card"><h4>3 · Sync</h4><p style="font-size:9pt">Revit <b>Sync Progress</b>, Navisworks <b>Apply Status Colors</b> + <b>Sync TimeLiner</b>.</p></div>
+  </div>
+  <p style="font-size:9.2pt">When the design changes: re-export the model (step 5). When the schedule changes: re-upload the XER (step 6) and rebuild the TimeLiner tasks from a fresh CSV.</p>
+
+  <h3>If something doesn't work</h3>
+  <table>
+    <tr><th style="width:42%">You see</th><th>Fix</th></tr>
+    <tr><td>"Fauxel API URL is missing or not an http(s) URL"</td><td>Open Settings, enter the API URL from step 4.</td></tr>
+    <tr><td>"Fauxel project id is missing"</td><td>Copy it from Integrations › write-back card (step 2).</td></tr>
+    <tr><td>"Cloudflare Access answered with its login page…"</td><td>Remote use needs the Access id and secret (step 3), and the <b>Plugins</b> Service Auth policy on the portal app.</td></tr>
+    <tr><td>401 · "missing or invalid credentials (X-Fauxel-Key)"</td><td>Wrong or old API key. Make a new one with <code>-NewKey</code>.</td></tr>
+    <tr><td>Test connection times out (local)</td><td>Docker Desktop not running. Run <code>.\Start-Fauxel.ps1 -SkipPlugins</code> on the server PC.</td></tr>
+    <tr><td>"No elements with geometry found."</td><td>Navisworks file has no geometry loaded: append the NWCs first.</td></tr>
+    <tr><td>"… (M not found in this model)" is high</td><td>The open model isn't the one you exported. Export it again (step 5), or open the right file.</td></tr>
+    <tr><td>Revit: "Nothing to write back yet: no verified elements."</td><td>No verified progress yet. Upload a walk and clear the Verification queue (steps 6–7).</td></tr>
+    <tr><td>TimeLiner: "already up to date (N tasks…)" but nothing changed</td><td>Task IDs/names don't match the schedule. Build tasks from the TimeLiner tasks CSV (step 8).</td></tr>
+    <tr><td>Portal shows "Demo mode" or empty lists</td><td>No key in this browser: Integrations › API keys › Key used by this browser › Save.</td></tr>
+    <tr><td>Fauxel buttons missing</td><td>Check the install paths in step 1; restart the app.</td></tr>
+  </table>
+</section>
+
+<!-- ============================== A ============================== -->
+<section class="page">
+  <div class="sechead"><div class="num">A</div><div><div class="eyebrow">Reference</div><h2>Files, colors and commands</h2></div></div>
+  <h3>Where things live</h3>
+  <table>
+    <tr><th style="width:36%">What</th><th>Path</th></tr>
+    <tr><td>Plugin settings (both apps)</td><td><code>%APPDATA%\Fauxel\settings.json</code></td></tr>
+    <tr><td>Navisworks 2025–2027 bundle</td><td><code>%APPDATA%\Autodesk\ApplicationPlugins\Fauxel.bundle</code> (Contents\v22, v23, v24)</td></tr>
+    <tr><td>Revit add-in</td><td><code>%APPDATA%\Autodesk\Revit\Addins\&lt;year&gt;\Fauxel\</code> + <code>Fauxel.addin</code></td></tr>
+    <tr><td>Shared parameter file</td><td><code>Fauxel_SharedParameters.txt</code> inside the Revit add-in folder (group <b>Fauxel</b>)</td></tr>
+    <tr><td>Server settings (secrets, never shared)</td><td><code>C:\Fauxel\infra\.env</code></td></tr>
+  </table>
+  <h3>Server PC commands (in C:\Fauxel)</h3>
+  <table>
+    <tr><th style="width:46%">Command</th><th>Does</th></tr>
+    <tr><td><code>.\Start-Fauxel.ps1</code></td><td>Install or update everything, start the stack, write plugin settings</td></tr>
+    <tr><td><code>.\Start-Fauxel.ps1 -NewKey "name" -SkipPrereqs -SkipUpdate -SkipStack</code></td><td>One more API key, printed once</td></tr>
+    <tr><td><code>.\Start-Fauxel.ps1 -Capture &lt;folder&gt;</code></td><td>Upload a ONE X2 walk</td></tr>
+    <tr><td><code>.\Start-Fauxel.ps1 -DeployWeb -SkipPlugins</code></td><td>Update fauxel.ackerworks.com after an update</td></tr>
+    <tr><td><code>.\Start-Fauxel.ps1 -PublicToday</code> / <code>-Private</code></td><td>Read-only public view until 23:59 / close it now</td></tr>
+  </table>
+  <h3>Status colors (portal, Navisworks, Revit)</h3>
+  <table>
+    <tr><th>Color</th><th>Meaning</th><th>Fauxel_Status</th></tr>
+    <tr><td><span class="chip"><span class="dot" style="background:#22c55e"></span>Green</span></td><td>Installed or finished</td><td>INSTALLED, INSULATED_OR_FINISHED</td></tr>
+    <tr><td><span class="chip"><span class="dot" style="background:#eab308"></span>Yellow</span></td><td>In progress</td><td>FRAMED_OR_ROUGHED</td></tr>
+    <tr><td><span class="chip"><span class="dot" style="background:#ef4444"></span>Red</span></td><td>Deviation or open QC issue</td><td>DEVIATION_FLAGGED</td></tr>
+    <tr><td><span class="chip"><span class="dot" style="background:#94a3b8"></span>Gray</span></td><td>Not started</td><td>NOT_STARTED</td></tr>
+  </table>
+  <div class="callout"><b>Need more?</b> Full setup notes: <code>docs/setup/quickstart.md</code> in github.com/VDC-Austin-KA/Fauxel. Cloudflare Access details: <code>infra/cloudflare/access-policy.md</code>.</div>
+</section>
+
+</body>
+</html>

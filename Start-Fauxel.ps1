@@ -17,6 +17,7 @@
                      (served through the tunnel at fauxel-files.<domain>, free) or goes to R2 (optional)
   -DeployWeb         After a pull: rebuild the portal, redeploy Pages + Worker to fauxel.<domain> (no prompts)
   -PublicToday       Anyone with the link can view, read-only, until 23:59 (the API closes it itself); -Private closes it
+  -NewKey <name>     Creates one more API key (for a teammate or another PC) and prints it once; keys are only made on this PC
 
 .EXAMPLE
   .\Start-Fauxel.ps1
@@ -24,6 +25,7 @@
   .\Start-Fauxel.ps1 -Capture D:\DCIM\Camera01
   .\Start-Fauxel.ps1 -Cloudflare
   .\Start-Fauxel.ps1 -DeployWeb -SkipPlugins
+  .\Start-Fauxel.ps1 -NewKey 'Jane laptop' -SkipPrereqs -SkipUpdate -SkipStack
 #>
 [CmdletBinding()]
 param(
@@ -39,7 +41,8 @@ param(
   [switch]$PublicToday,  # anyone with the link can VIEW (read-only, no key) until 23:59 today; the API closes it by itself
   [datetime]$PublicUntil,# same, until a given local time, e.g. -PublicUntil '2026-11-21 18:00'
   [switch]$Private,      # close the public view now
-  [switch]$DeployWeb     # rebuild the portal and redeploy Pages + Worker to fauxel.<domain> (after a one-time -Cloudflare setup)
+  [switch]$DeployWeb,    # rebuild the portal and redeploy Pages + Worker to fauxel.<domain> (after a one-time -Cloudflare setup)
+  [string]$NewKey        # create an extra API key with this name (a teammate, a plugin PC) and print it once
 )
 $ErrorActionPreference = 'Continue'   # native tools (git, docker, wrangler) write progress to stderr
 $Root = $PSScriptRoot
@@ -207,6 +210,13 @@ if ($PublicUntil -or $Private) {
   elseif ($Private) { Note 'Public view' 'OK' 'closed: every request needs a key again' }
   else { Note 'Public view' 'FAIL' 'API did not pick up FAUXEL_PUBLIC_READ_UNTIL; run without -SkipStack' }
   if ($h.public_read_until) { Note 'Cloudflare Access' 'TODO' "Zero Trust > Access > Applications > Fauxel portal > Policies: add 'Public today' (Action Bypass, Include Everyone), move it to the top. Delete it tomorrow." }
+}
+
+if ($NewKey) {   # keys are created only here (the API refuses key creation through the tunnel or the portal proxy)
+  $k = Api 'POST' '/api-keys' @{ name = $NewKey } @{ 'X-Fauxel-Admin' = (Get-EnvValue 'FAUXEL_ADMIN_TOKEN') }
+  Note 'API key' 'OK' "'$NewKey' created"
+  Write-Host "`n  New API key for '$NewKey' (shown once, store it in the plugin Settings or a password manager):`n  $($k.key)`n" -ForegroundColor Green
+  Finish 0
 }
 
 # ------------------------------------------------------------------ 6. key, project, sample model

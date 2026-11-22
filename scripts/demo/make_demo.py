@@ -242,7 +242,7 @@ def bastrop_dc():
         ("Level 1 Zone A CRAH mechanical setting", "hvac", "Level 1", "Zone A", -40, 45, 3.4e6, -0.1),
         ("Level 1 Zone A busway and cable tray electrical", "electrical", "Level 1", "Zone A", -45, 60, 4.1e6, 0.05),
         ("Level 1 Zone A partitions, doors and containment framing", "arch_interior", "Level 1", "Zone A", -10, 50, 1.6e6, -0.1),
-        ("Level 1 Zone A owner rack pod install", "other", "Level 1", "Zone A", 30, 40, 0, 0),
+        ("Level 1 Zone A owner rack pod install", "other", "Level 1", "Zone A", 30, 40, 0.4e6, 0),
         ("Level 1 Zone B switchgear and UPS electrical", "electrical", "Level 1", "Zone B", -75, 65, 9.8e6, 0),
         ("Level 1 Zone B mechanical cooling", "hvac", "Level 1", "Zone B", -30, 40, 0.9e6, 0),
         ("Level 1 Zone B sprinkler rough-in", "plumbing_fp", "Level 1", "Zone B", -25, 30, 0.3e6, 0),

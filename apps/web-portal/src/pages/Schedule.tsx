@@ -96,7 +96,7 @@ export default function Schedule() {
                       <tr key={r.scope_key} className="border-t border-slate-100">
                         <td className="py-1.5">{scope === "trade" ? <TradeChip trade={r.scope_key as never} /> : (zoneName.get(r.scope_key) ?? r.scope_key)}</td>
                         <td className="text-right">{formatMoney(r.pv)}</td><td className="text-right">{formatMoney(r.ev)}</td><td className="text-right">{formatMoney(r.ac)}</td>
-                        <td className="text-right"><Chip color={spiColor(r.spi)}>{r.spi.toFixed(2)}</Chip></td><td className="text-right"><Chip color={spiColor(r.cpi)}>{r.cpi.toFixed(2)}</Chip></td><td className="text-right">{r.velocity_per_week == null ? "—" : r.velocity_per_week.toFixed(1)}</td>
+                        <td className="text-right">{r.spi == null ? "—" : <Chip color={spiColor(r.spi)}>{r.spi.toFixed(2)}</Chip>}</td><td className="text-right">{r.cpi == null ? "—" : <Chip color={spiColor(r.cpi)}>{r.cpi.toFixed(2)}</Chip>}</td><td className="text-right">{r.velocity_per_week == null ? "—" : r.velocity_per_week.toFixed(1)}</td>
                       </tr>
                     ))}
                     <tr className="border-t-2 border-slate-300 font-semibold"><td className="py-1.5">Total</td><td className="text-right">{formatMoney(tot.pv)}</td><td className="text-right">{formatMoney(tot.ev)}</td><td className="text-right">{formatMoney(tot.ac)}</td><td className="text-right">{tot.pv ? (tot.ev / tot.pv).toFixed(2) : "—"}</td><td className="text-right">{tot.ac ? (tot.ev / tot.ac).toFixed(2) : "—"}</td><td /></tr>

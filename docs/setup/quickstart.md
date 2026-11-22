@@ -2,6 +2,8 @@
 
 Target: KA's Windows PC (NVIDIA GPU, under 12 GB VRAM) runs the database, API and processing in Docker; Cloudflare serves the portal at `https://fauxel.ackerworks.com` and reaches the PC only through a Tunnel.
 
+**Plugin + upload walkthrough (PDF, picks and clicks):** [Fauxel-Setup-Guide.pdf](Fauxel-Setup-Guide.pdf). Source: `docs/setup/guide/` (`node docs/setup/guide/pdf.mjs` rebuilds it).
+
 ## One command (recommended)
 
 Put `Start-Fauxel.ps1` (repo root) in `C:\Fauxel`, keep your `.env` in `C:\Fauxel\infra\.env` (or `C:\Fauxel\.env`; it gets moved), then:
