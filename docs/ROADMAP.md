@@ -58,7 +58,6 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | v1 CV = BIM-prior change detection; anything under 0.8 confidence goes to the human verification queue and never writes verified status; verified samples train the ONNX trade models | Senior review finding #1 |
 | 2026-11-20 | Large files upload straight to R2/S3 with presigned multipart PUTs (Cloudflare caps request bodies at 100 MB) | Field app review |
 | 2026-11-20 | Machine clients (plugins, phone app, CLI) pass Cloudflare Access with a service token (CF-Access-Client-Id/Secret) | Senior review finding #5 |
-| 2026-11-22 | Portal offers a real Autodesk sign-in and a demo Autodesk connection side by side. Demo is a saved choice (`fauxel.mode`), not a silent fallback; a failed /health probe is retried once and the reason is shown. The APS callback sends browsers back to the portal (`?aps=connected` / `aps_error`) and still returns JSON to API clients | KA could not reach his real Forma account |
 | 2026-11-20 | Local S3 is RustFS (MinIO stopped publishing community images) | Infra build |
 | 2026-11-20 | R2 is optional: media can stay in the PC's S3 storage, published through the same Tunnel at fauxel-files.<domain> (presigned uploads; Worker without R2 via `FAUXEL_MEDIA=local`). KA's live setup uses this | KA (no extra paid service) |
 | 2026-11-20 | Portal 3D model page: level/trade filters; color by installation status, current condition, or schedule variance (verified % vs. activity plan, as-of date, on-time range) | KA (ACC Model Coordination-style quick look) |
@@ -67,6 +66,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | Public sharing is a server-enforced, expiring, read-only window (`FAUXEL_PUBLIC_READ_UNTIL`; `-PublicToday`/`-Private`): keyless GET only, integrations/uploads/training closed, Access identity header ignored while open. `FAUXEL_TRUST_ACCESS_HEADER` is no longer forced on by `-Production` (unsafe under a Bypass policy) | KA (share for a day) |
 | 2026-11-20 | Demo data = three building types (data center, MOB, podium multifamily) as federated discipline IFCs (A/S/M/E/P/FP) with a P6 schedule, schedule-driven progress and QC issues (`scripts/demo/make_demo.py`). The 3D view loads every current IFC model; mock projects get type-specific fit-outs. Schedule mapping: zone activities must match their level; `Roof` is a level | KA |
 | 2026-11-20 | No GitHub Actions, Copilot or GitHub-hosted agents. Claude builds and tests locally (`scripts/check.sh`) and pushes finished files straight to `main` (no PR flow). CI workflow removed | KA |
+| 2026-11-22 | Portal offers a real Autodesk sign-in and a demo Autodesk connection side by side. Demo is a saved choice (`fauxel.mode`), not a silent fallback; a failed /health probe is retried once and the reason is shown. The APS callback sends browsers back to the portal (`?aps=connected` / `aps_error`) and still returns JSON to API clients | KA could not reach his real Forma account |
 
 ## Spec gaps found in the phase docs
 1. OpenSpace is in the project goal but no phase covers it, so M2.5 was added.
