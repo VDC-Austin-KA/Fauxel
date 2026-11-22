@@ -281,20 +281,7 @@
         <li>Click <span class="click">Save</span>. Both apps now use these values (<code>%APPDATA%\Fauxel\settings.json</code>).</li>
       </ol>
     </div>
-    <div class="win dlg avoid">
-      <div class="title"><span>Fauxel Settings</span><span style="color:#64748b">✕</span></div>
-      <div class="body">
-        <div class="row"><label>API URL</label><div class="tb">https://fauxel.ackerworks.com</div></div>
-        <div class="row"><label>API key</label><div class="tb">••••••••••••••••••••••••</div></div>
-        <div class="row"><label>Project id</label><div class="tb">f26f0874-8b9e-4bac-b1e2-…</div></div>
-        <div class="row"><label>Access id</label><div class="tb">3a1c…access</div></div>
-        <div class="row"><label>Access secret</label><div class="tb">••••••••••••••••••••••••</div></div>
-        <div style="margin:8px 0 0 84px"><span class="wbtn">Test connection</span></div>
-        <div class="status">Connected. API status: ok, db: True, storage: True. Project found.</div>
-        <div style="text-align:right;margin-top:8px"><span class="wbtn pri">Save</span><span class="wbtn" style="margin-right:0">Cancel</span></div>
-      </div>
-      <div style="padding:3px 8px;background:#fff;border-top:1px solid #e2e8f0"><span class="tag ill">Illustration</span></div>
-    </div>
+    <figure class="avoid" style="margin:0"><img class="shot" src="img/nw-settings.png" style="width:100%;max-width:3.6in"><figcaption>The real Fauxel Settings window (same in Navisworks and Revit) after <b>Test connection</b> against fauxel.ackerworks.com. Secrets stay masked.</figcaption></figure>
   </div>
 
   <table>
@@ -487,6 +474,8 @@
     <tr><td>TimeLiner: "already up to date (N tasks…)" but nothing changed</td><td>Task IDs/names don't match the schedule. Build tasks from the TimeLiner tasks CSV (step 8).</td></tr>
     <tr><td>Portal shows "Demo mode" or empty lists</td><td>No key in this browser: Integrations › API keys › Key used by this browser › Save.</td></tr>
     <tr><td>Fauxel buttons missing</td><td>Check the install paths in step 1; restart the app.</td></tr>
+    <tr><td>Portal still shows a <b>Create key</b> button, or no <b>Copy</b> next to API URL</td><td>fauxel.ackerworks.com runs an older build. On the server PC run <code>.\Start-Fauxel.ps1 -DeployWeb -SkipPlugins</code>.</td></tr>
+    <tr><td><code>-DeployWeb</code>: "Invalid access token [code: 9109]" or "Not logged in"</td><td>The Cloudflare sign-in expired. Run <code>-DeployWeb</code> again in a normal PowerShell window and sign in when the browser opens. An old <code>CLOUDFLARE_API_TOKEN</code> variable is skipped; remove it for good in <b>System › Environment Variables</b>.</td></tr>
   </table>
 </section>
 

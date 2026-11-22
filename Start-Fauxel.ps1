@@ -241,7 +241,7 @@ else { Note 'Project' 'OK' "'$($proj.name)'" }
 $ProjectId = $proj.id
 
 $out = [ordered]@{
-  api_url = "http://localhost:$ApiPort"; api_key = $key; project_id = $ProjectId; timeout_seconds = 120
+  api_url = $(if ($cfg -and $cfg.api_url) { $cfg.api_url } else { "http://localhost:$ApiPort" }); api_key = $key;  # keep a URL set by -Cloudflare or by hand project_id = $ProjectId; timeout_seconds = 120
   cf_access_client_id = $(if ($cfg) { $cfg.cf_access_client_id } else { '' })
   cf_access_client_secret = $(if ($cfg) { $cfg.cf_access_client_secret } else { '' })
 }
@@ -369,6 +369,8 @@ if ($DeployWeb) {
   Say "Website: https://fauxel.$Domain"
   if (-not (Has 'npx')) { Note 'Website' 'FAIL' 'Node.js missing: winget install OpenJS.NodeJS.LTS, open a new terminal, re-run'; Finish 1 }
   npx wrangler whoami *> $null
+  # A stale CLOUDFLARE_API_TOKEN (user env var or .env) overrides wrangler login and fails with code 9109; drop it for this run.
+  if ($LASTEXITCODE -ne 0 -and $env:CLOUDFLARE_API_TOKEN) { Write-Host '   CLOUDFLARE_API_TOKEN is invalid or expired: ignoring it, using wrangler login instead'; Remove-Item Env:CLOUDFLARE_API_TOKEN; npx wrangler whoami *> $null }
   if ($LASTEXITCODE -ne 0) { Write-Host '   Cloudflare sign-in needed (browser opens once):'; npx wrangler login }
   $env:FAUXEL_DOMAIN = $Domain
   $env:FAUXEL_MEDIA = $(if ((Get-EnvValue 'FAUXEL_S3_ENDPOINT') -like '*r2.cloudflarestorage.com*') { '' } else { 'local' })
