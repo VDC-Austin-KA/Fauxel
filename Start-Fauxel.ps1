@@ -241,7 +241,8 @@ else { Note 'Project' 'OK' "'$($proj.name)'" }
 $ProjectId = $proj.id
 
 $out = [ordered]@{
-  api_url = $(if ($cfg -and $cfg.api_url) { $cfg.api_url } else { "http://localhost:$ApiPort" }); api_key = $key;  # keep a URL set by -Cloudflare or by hand project_id = $ProjectId; timeout_seconds = 120
+  api_url = $(if ($cfg -and $cfg.api_url) { $cfg.api_url } else { "http://localhost:$ApiPort" })   # keep a URL set by -Cloudflare or by hand
+  api_key = $key; project_id = $ProjectId; timeout_seconds = 120
   cf_access_client_id = $(if ($cfg) { $cfg.cf_access_client_id } else { '' })
   cf_access_client_secret = $(if ($cfg) { $cfg.cf_access_client_secret } else { '' })
 }
