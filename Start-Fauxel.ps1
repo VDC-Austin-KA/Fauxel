@@ -346,7 +346,7 @@ if ($Cloudflare) {
   Pop-Location
   if ($LASTEXITCODE -eq 0) { Note 'Worker' 'OK' "routes fauxel.$Domain/api/* and /media/*" } else { Note 'Worker' 'WARN' 'see wrangler output' }
 
-  Push-Location (Join-Path $Root 'apps/web-portal'); npm ci --silent; npm run build; Pop-Location
+  Push-Location (Join-Path $Root 'apps/web-portal'); npm ci --silent --include=dev; npm run build; Pop-Location
   Push-Location (Join-Path $Root 'infra/cloudflare/pages')
   npx wrangler pages project create fauxel --production-branch main 2>$null
   npx wrangler pages deploy --project-name fauxel --branch main
@@ -374,9 +374,9 @@ if ($DeployWeb) {
   if ($LASTEXITCODE -ne 0) { Write-Host '   Cloudflare sign-in needed (browser opens once):'; npx wrangler login }
   $env:FAUXEL_DOMAIN = $Domain
   $env:FAUXEL_MEDIA = $(if ((Get-EnvValue 'FAUXEL_S3_ENDPOINT') -like '*r2.cloudflarestorage.com*') { '' } else { 'local' })
-  Push-Location (Join-Path $Root 'infra/cloudflare/worker'); npm ci --silent; node render-config.mjs; npx wrangler deploy; $w = $LASTEXITCODE; Pop-Location
+  Push-Location (Join-Path $Root 'infra/cloudflare/worker'); npm ci --silent --include=dev; node render-config.mjs; npx wrangler deploy; $w = $LASTEXITCODE; Pop-Location
   if ($w -eq 0) { Note 'Worker' 'OK' "redeployed (fauxel.$Domain/api/*)" } else { Note 'Worker' 'FAIL' 'see wrangler output above' }
-  Push-Location (Join-Path $Root 'apps/web-portal'); npm ci --silent; npm run build; $b = $LASTEXITCODE; Pop-Location
+  Push-Location (Join-Path $Root 'apps/web-portal'); npm ci --silent --include=dev; npm run build; $b = $LASTEXITCODE; Pop-Location
   if ($b -ne 0) { Note 'Portal build' 'FAIL' 'see npm output above'; Finish 1 }
   Push-Location (Join-Path $Root 'infra/cloudflare/pages'); npx wrangler pages deploy --project-name fauxel --branch main --commit-dirty=true; $d = $LASTEXITCODE; Pop-Location
   if ($d -eq 0) { Note 'Portal (Pages)' 'OK' ("deployed main @ " + (git rev-parse --short HEAD) + " to fauxel.pages.dev and fauxel.$Domain") } else { Note 'Portal (Pages)' 'FAIL' 'see wrangler output above' }
