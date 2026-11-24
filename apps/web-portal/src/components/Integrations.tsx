@@ -76,6 +76,7 @@ export function ApsCard({ pid }: { pid: string }) {
     try {
       if (isMock()) { await api.apsMockConnect(pid); await st.refetch(); return; }
       const { authorize_url } = await api.apsLogin(pid);
+      if (!/^https:\/\//.test(authorize_url)) throw new Error(`server returned an invalid Autodesk sign-in URL (${authorize_url.split("?")[0]}); update the server and retry`);
       window.location.href = authorize_url;
     } catch (e) { setConnErr((e as Error).message); }
   };

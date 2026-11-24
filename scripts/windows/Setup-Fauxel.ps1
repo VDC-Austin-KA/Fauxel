@@ -130,6 +130,20 @@ function Test-Preflight {
     Add-Result 'Docker Desktop' 'FAIL' 'docker not found; install Docker Desktop with the WSL2 backend: https://www.docker.com/products/docker-desktop/'
   } else {
     $info = Invoke-Native 'docker' @('info', '--format', '{{.OperatingSystem}}|{{.ServerVersion}}')
+    $dd = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
+    if ($info.Code -ne 0 -and (Test-Path $dd)) {   # engine off (usually after a reboot): start it and wait
+      Start-Process $dd
+      for ($t = 0; $t -lt 180 -and $info.Code -ne 0; $t += 5) { Start-Sleep 5; $info = Invoke-Native 'docker' @('info', '--format', '{{.OperatingSystem}}|{{.ServerVersion}}') }
+    }
+    if (Test-Path $dd) {   # the API lives in Docker: Docker must come back by itself after a reboot
+      $run = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+      if (-not (Get-ItemProperty $run -Name 'Docker Desktop' -ErrorAction SilentlyContinue)) { Set-ItemProperty $run -Name 'Docker Desktop' -Value "`"$dd`"" }
+      $ss = Join-Path $env:APPDATA 'Docker\settings-store.json'
+      if (Test-Path $ss) {
+        $j = Get-Content $ss -Raw | ConvertFrom-Json
+        if ($j.AutoStart -ne $true) { $j | Add-Member AutoStart $true -Force; $j | ConvertTo-Json -Depth 20 | Set-Content $ss -Encoding UTF8 }
+      }
+    }
     if ($info.Code -ne 0) { Add-Result 'Docker Desktop' 'FAIL' 'docker daemon not reachable; start Docker Desktop and wait for the whale icon to settle' }
     else {
       $c = Invoke-Native 'docker' @('compose', 'version', '--short')

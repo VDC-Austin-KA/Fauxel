@@ -392,3 +392,13 @@ def test_parse_extraction_and_dedupe_key():
                     "workflow": "wf-1", "hook_id": "hook-1"}
     raw = json.dumps(ev).encode()
     assert event_key(ev, raw) == event_key(ev, raw) != event_key(ev, raw + b" ")
+
+
+def test_config_treats_blank_env_as_unset(monkeypatch):
+    # docker compose passes `${FAUXEL_APS_BASE_URL:-}` as an empty string; that must not wipe the defaults
+    from fauxel_aps import config as c
+    for k in ("FAUXEL_APS_BASE_URL", "FAUXEL_APS_SCOPES_3LO", "FAUXEL_APS_SCOPES_2LO", "FAUXEL_APS_REGION"):
+        monkeypatch.setenv(k, "")
+    cfg = c.ApsConfig.from_env()
+    assert cfg.base_url == c.BASE_URL and cfg.base_url.startswith("https://")
+    assert cfg.scopes_3lo == c.DEFAULT_SCOPES_3LO and cfg.scopes_2lo == c.DEFAULT_SCOPES_2LO and cfg.region is None

@@ -27,7 +27,7 @@ class ApsConfig:
 
     @classmethod
     def from_env(cls, **overrides) -> "ApsConfig":
-        e = os.environ.get
+        e = lambda k, d=None: os.environ.get(k) or d   # blank (compose `${X:-}`) = unset
         c = cls(
             client_id=e("FAUXEL_APS_CLIENT_ID", ""),
             client_secret=e("FAUXEL_APS_CLIENT_SECRET", ""),
