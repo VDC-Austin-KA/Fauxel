@@ -116,7 +116,7 @@ def test_login_callback_status_and_encrypted_storage(app_client, db):
     assert back.status_code == 303 and back.headers["location"] == f"http://localhost:8000/p/{pid}/settings?aps=connected#autodesk"
     denied = c.get("/api/v1/integrations/aps/callback", params={"error": "access_denied", "error_description": "User denied"},
                    headers=html, follow_redirects=False)
-    assert denied.status_code == 303 and denied.headers["location"] == "http://localhost:8000/?aps_error=APS+login+failed%3A+User+denied#autodesk"
+    assert denied.status_code == 303 and denied.headers["location"] == "http://localhost:8000/settings?aps_error=APS+login+failed%3A+User+denied#autodesk"
 
 
 @respx.mock

@@ -155,7 +155,7 @@ def callback(request: Request, code: Optional[str] = None, state: Optional[str] 
 def _back_to_portal(request: Request, pid, params: dict) -> RedirectResponse:
     """Portal origin = the registered callback URL's origin (same host the browser used), never a request parameter."""
     u = urlsplit(_cfg(request).callback_url or str(request.url))
-    path = f"/p/{pid}/settings" if pid else "/"
+    path = f"/p/{pid}/settings" if pid else "/settings"
     return RedirectResponse(urlunsplit((u.scheme, u.netloc, path, urlencode(params), "autodesk")), status_code=303)
 
 
