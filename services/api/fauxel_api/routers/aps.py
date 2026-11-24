@@ -146,7 +146,9 @@ def callback(request: Request, code: Optional[str] = None, state: Optional[str] 
         token = aps.exchange_code(cfg, code, tm.vault.dec(row["code_verifier_enc"]))
     except aps.ApsAuthError as exc:
         return fail(502, str(exc))
-    aps_tokens.save_three_legged(conn, tm.vault, token, pid, scopes=cfg.scopes_3lo)
+    # The Autodesk sign-in is the user's identity, not a property of one Fauxel project: store it account-wide so every
+    # project (and the Portfolio "add from Forma" flow) can use it. pid only decides where the browser goes back to.
+    aps_tokens.save_three_legged(conn, tm.vault, token, None, scopes=cfg.scopes_3lo)
     if browser:
         return _back_to_portal(request, pid, {"aps": "connected"})
     return {"status": "connected", "project_id": pid, "refresh_token_stored": bool(token.get("refresh_token"))}
@@ -203,6 +205,26 @@ def write_config(pid: uuid.UUID, body: ApsConfigIn, conn=Depends(get_conn, scope
                  "ON CONFLICT (project_id, provider) DO UPDATE SET config = EXCLUDED.config, updated_at = now()",
                  (pid, PROVIDER, Jsonb(cfg)))
     return cfg
+
+
+class FromApsIn(BaseModel):
+    hub_id: str = Field(min_length=1, max_length=200)
+    aps_project_id: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=200)
+
+
+@router.post("/integrations/aps/projects", status_code=201)
+def create_from_aps(body: FromApsIn, conn=Depends(get_conn, scope="function")):
+    """Create (or reopen) the Fauxel project linked to one Autodesk Forma project."""
+    hit = conn.execute("SELECT project_id FROM project_integrations WHERE provider = %s AND config->>'aps_project_id' = %s "
+                       "ORDER BY updated_at DESC LIMIT 1", (PROVIDER, body.aps_project_id)).fetchone()
+    if hit:
+        return JSONResponse(_json.loads(_json.dumps({**get_project(conn, hit["project_id"]), "existing": True}, default=str)), status_code=200)
+    proj = conn.execute("INSERT INTO projects (name, description) VALUES (%s, %s) RETURNING *",
+                        (body.name, "Linked to Autodesk Forma")).fetchone()
+    conn.execute("INSERT INTO project_integrations (project_id, provider, config) VALUES (%s,%s,%s)",
+                 (proj["id"], PROVIDER, Jsonb({"hub_id": body.hub_id, "aps_project_id": body.aps_project_id})))
+    return {**proj, "existing": False}
 
 
 @router.get("/integrations/aps/hubs")

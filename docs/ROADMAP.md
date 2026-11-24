@@ -67,6 +67,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | Demo data = three building types (data center, MOB, podium multifamily) as federated discipline IFCs (A/S/M/E/P/FP) with a P6 schedule, schedule-driven progress and QC issues (`scripts/demo/make_demo.py`). The 3D view loads every current IFC model; mock projects get type-specific fit-outs. Schedule mapping: zone activities must match their level; `Roof` is a level | KA |
 | 2026-11-20 | No GitHub Actions, Copilot or GitHub-hosted agents. Claude builds and tests locally (`scripts/check.sh`) and pushes finished files straight to `main` (no PR flow). CI workflow removed | KA |
 | 2026-11-22 | Portal offers a real Autodesk sign-in and a demo Autodesk connection side by side. Demo is a saved choice (`fauxel.mode`), not a silent fallback; a failed /health probe is retried once and the reason is shown. The APS callback sends browsers back to the portal (`?aps=connected` / `aps_error`) and still returns JSON to API clients | KA could not reach his real Forma account |
+| 2026-11-24 | Autodesk browser sign-in is stored account-wide (it is the user's identity, not a project setting). Portfolio › "Add from Autodesk Forma" creates or reopens the Fauxel project linked to a Forma hub/project (`POST /integrations/aps/projects`, one Fauxel project per Forma project) | KA: Portfolio only showed demo projects |
 
 ## Spec gaps found in the phase docs
 1. OpenSpace is in the project goal but no phase covers it, so M2.5 was added.

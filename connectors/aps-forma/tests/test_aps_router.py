@@ -118,13 +118,23 @@ def test_login_callback_status_and_encrypted_storage(app_client, db):
                    headers=html, follow_redirects=False)
     assert denied.status_code == 303 and denied.headers["location"] == "http://localhost:8000/settings?aps_error=APS+login+failed%3A+User+denied#autodesk"
 
-    # the browser sign-in was stored for this project only: hub/project lists must find it when asked for that project
-    db.execute("DELETE FROM integration_tokens WHERE provider='aps' AND project_id IS NULL")
+    # a sign-in started from one project is account-wide: hub lists work with or without a project
+    assert db.execute("SELECT count(*) AS n FROM integration_tokens WHERE provider='aps' AND project_id IS NOT NULL").fetchone()["n"] == 0
     respx.get(f"{BASE}/project/v1/hubs").mock(return_value=httpx.Response(200, json=fx.HUBS))
     respx.get(f"{BASE}/project/v1/hubs/b.hub-1/projects").mock(return_value=httpx.Response(200, json={"data": []}))
-    assert c.get("/api/v1/integrations/aps/hubs").status_code == 401
-    assert c.get("/api/v1/integrations/aps/hubs", params={"project_id": pid}).json()[0]["id"] == "b.hub-1"
+    assert c.get("/api/v1/integrations/aps/hubs").json()[0]["id"] == "b.hub-1"
     assert c.get("/api/v1/integrations/aps/hubs/b.hub-1/projects", params={"project_id": pid}).status_code == 200
+
+    # Portfolio: a Forma project becomes a linked Fauxel project, once
+    body = {"hub_id": "b.hub-1", "aps_project_id": "b.proj-forma-1", "name": "Bastrop DC (Forma)"}
+    made = c.post("/api/v1/integrations/aps/projects", json=body)
+    assert made.status_code == 201 and made.json()["existing"] is False and made.json()["name"] == "Bastrop DC (Forma)"
+    fid = made.json()["id"]
+    assert c.get(f"/api/v1/projects/{fid}/aps/config").json() == {"hub_id": "b.hub-1", "aps_project_id": "b.proj-forma-1"}
+    again = c.post("/api/v1/integrations/aps/projects", json=body)
+    assert again.status_code == 200 and again.json()["existing"] is True and again.json()["id"] == fid
+    assert fid in [p["id"] for p in c.get("/api/v1/projects").json()]
+    assert c.post("/api/v1/integrations/aps/projects", json={**body, "name": ""}).status_code == 422
 
 
 @respx.mock
