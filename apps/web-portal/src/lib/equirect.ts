@@ -42,6 +42,11 @@ export function worldDirToView(heading: number, dir: Vec3): { yaw: number; pitch
   return { yaw: wrapPi(heading - Math.atan2(dy, dx)), pitch: Math.asin(Math.max(-1, Math.min(1, dz / len))) };
 }
 
+/** View yaw that turns a camera at (cx,cy) with this heading toward a plan point (tx,ty); used by the floorplan click-to-look. */
+export function yawToward(heading: number, cx: number, cy: number, tx: number, ty: number): number {
+  return worldDirToView(heading, [tx - cx, ty - cy, 0]).yaw;
+}
+
 export interface CamPose { x: number; y: number; z: number; heading: number }
 
 export function projectPoint(p: Vec3, cam: CamPose): { u: number; v: number; dist: number } {

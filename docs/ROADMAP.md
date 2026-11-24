@@ -1,6 +1,6 @@
 # Fauxel Roadmap & Status
 
-Last updated: 2026-11-20 (sprint: M4.3 eval report + release gate; demo projects; public view; one-command setup) · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (Claude builds and tests locally, pushes finished files to `main`; no GitHub Actions)
+Last updated: 2026-11-24 (morning build: API redeployed with Forma import, account-wide Autodesk sign-in, Reality viewer layouts + plan click-to-look, host model naming fixes; commit pending push from KA's PC) · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (Claude builds and tests locally, pushes finished files to `main`; no GitHub Actions)
 
 Status keys: `todo` · `in-progress` · `done` (tested and pushed to main) · `blocked`
 
@@ -34,7 +34,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | M4.3 | Remaining trade heads: structural, HVAC, electrical, plumbing/FP | 4 | M4.2, M3.2 | Per-trade eval report | in-progress: eval report + release gate built (`python -m fauxel_cv.evaluate`, [spec](specs/M4.3-trade-heads-eval.md)); training waits on verified samples from real walks |
 | M1.5 | APS / Forma adapter: OAuth 2/3-legged, AEC Data Model, Model Derivative, Issues, Photos, Locations, Assets, webhooks | 1 | M1.3 | Issue with a 3D pin created from a deviation in a test hub | done |
 | M1.6 | Speckle connector | 1 | M1.1 | Commit streamed and diffed | done |
-| M8.1 | Field app: OSC control, floorplan-guided walk, resumable tus upload | 8 | M2.1 | Controls a ONE X2 over OSC (192.168.42.1), captures and uploads to dev | in-progress |
+| M8.1 | Field app: OSC control, floorplan-guided walk, resumable tus upload | 8 | M2.1 | Controls a ONE X2 over OSC (192.168.42.1), captures and uploads to dev | in-progress: resumable direct-multipart slice built Nov 23 (`claude/patches/M8.1-slice2.patch` in the Project, not yet on main); needs on-device test with the ONE X2 |
 
 ## Decision log
 | Date | Decision | Source |
@@ -67,7 +67,12 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-20 | Demo data = three building types (data center, MOB, podium multifamily) as federated discipline IFCs (A/S/M/E/P/FP) with a P6 schedule, schedule-driven progress and QC issues (`scripts/demo/make_demo.py`). The 3D view loads every current IFC model; mock projects get type-specific fit-outs. Schedule mapping: zone activities must match their level; `Roof` is a level | KA |
 | 2026-11-20 | No GitHub Actions, Copilot or GitHub-hosted agents. Claude builds and tests locally (`scripts/check.sh`) and pushes finished files straight to `main` (no PR flow). CI workflow removed | KA |
 | 2026-11-22 | Portal offers a real Autodesk sign-in and a demo Autodesk connection side by side. Demo is a saved choice (`fauxel.mode`), not a silent fallback; a failed /health probe is retried once and the reason is shown. The APS callback sends browsers back to the portal (`?aps=connected` / `aps_error`) and still returns JSON to API clients | KA could not reach his real Forma account |
+| 2026-11-23 | Field app uploads captures through the direct multipart API (`/uploads`), part-level resume via `GET /uploads/{id}`; the "tus" in M8.1 is met by this instead of a tus server (no new dependency) | Minimalism ladder; Cloudflare 100 MB cap |
 | 2026-11-24 | Autodesk browser sign-in is stored account-wide (it is the user's identity, not a project setting). Portfolio › "Add from Autodesk Forma" creates or reopens the Fauxel project linked to a Forma hub/project (`POST /integrations/aps/projects`, one Fauxel project per Forma project) | KA: Portfolio only showed demo projects |
+| 2026-11-24 | The account-wide Autodesk sign-in wins over a legacy project-scoped row; migration 004 moves a lone legacy row to account-wide (idempotent, newest kept) | Morning build: KA's PC had both rows |
+| 2026-11-24 | Revit/Navisworks exports: model name drops the host extension (`4D.nwd` = `4D`, Windows "hide extensions" changes doc.Title), older models recount their elements after a re-send, and an export with no building joins the project's main building instead of adding "Building 1" | Shakedown on Cedar Park MOB |
+| 2026-11-24 | Reality viewer layouts: 360°+model, 360°+plan, 360° only, model only (remembered per browser). The floorplan is the capture path: click or drag empty plan to turn the 360° camera, click an element footprint to select and look at it; the wedge follows the camera live. The element panel docks on wide screens instead of covering the viewers | KA |
+| 2026-11-24 | `Start-Fauxel.ps1` no longer resets local `main` when it has commits not on origin (it silently discarded them); it warns and skips the update | Morning build lost its PC commit to `-DeployWeb` once |
 
 ## Spec gaps found in the phase docs
 1. OpenSpace is in the project goal but no phase covers it, so M2.5 was added.
@@ -82,7 +87,8 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 - Revit 2025–2027: ribbon, shared parameter binding, "Fauxel Progress" view, internal→shared direction (`GetTotalTransform().Inverse`) on a model with a rotated survey point
 - Navisworks 2025–2027: bundle loading, TimeLiner TaskEdit, color overrides on real NWC/NWD
 - ONE X2: OSC option names, raw .insv stitch calibration (`python -m fauxel_capture.insta360 refine`), phone app on device
-- APS: one live sign-in and import (needs the Client ID added under Forma Account Admin › Custom Integrations); Speckle against a live server
+- APS: live sign-in, hub list (hub "Fauxel") and Forma model list verified Nov 24 on KA's PC (Cedar Park MOB linked, 43 Forma files). Still to run: one Model Derivative import of a Revit model through the Autodesk card. Speckle against a live server
+- Portal through Cloudflare Access: the scheduled run's Chrome is not signed in to Access, so live page checks ran against the API on KA's PC (all GET endpoints 200)
 - M4.3: trade models need verified samples from real walks (≥ 2 captures, ≥ 50 held-out crops per trade), then train + `python -m fauxel_cv.evaluate --strict` on KA's PC
 - M2.5: blocked on KA's OpenSpace API documentation (no endpoints guessed)
 
@@ -90,6 +96,8 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 Job heartbeat for long stitches; row locking between CV processing and human checks; bbox-local masks + batched mesh loads for 10k+ element models; skip boxes that contain the camera; streamed multipart uploads; webhook body cap; defusedxml everywhere; Revit workshared checkout handling; Navisworks single-pass property reads; SharedParams restore order; TimeLiner date compare; phone app Access headers + direct-to-R2 uploads.
 
 ## Open questions for KA
+- **Nov 24 morning build commit sits on KA's PC (C:\Fauxel, local `main`, not pushed)**: scheduled runs still have no push access. Run `cd C:\Fauxel; git push` once, or add the repo to the scheduled task from a claude.ai chat
+- A legacy project-scoped Autodesk token row remains for Cedar Park MOB (now unused). Delete it? (`DELETE FROM integration_tokens WHERE provider='aps' AND kind='three_legged' AND project_id IS NOT NULL`)
 - Answered Nov 20: license→Apache-2.0, OpenSpace→API, camera→ONE X2, hosts→2025–2027, fixtures→public IFC, repo→VDC-Austin-KA/Fauxel
 - **Build sprint scheduled task has no push access to VDC-Austin-KA/Fauxel** (its git proxy only allows authorized repos; the Nov 20 sprint's M4.3 slice was applied and pushed from KA's main session as e509b7f). Fix: recreate the sprint task from a chat that has the repo attached, or grant the repo to scheduled runs
 - M4.3: should the API model slot refuse a trade model whose `eval.json` is not `pass` (heuristic fallback instead)? Default today: it loads any valid manifest
@@ -98,5 +106,7 @@ Job heartbeat for long stitches; row locking between CV processing and human che
 ## Scheduled tasks
 | Task | Schedule (America/Chicago) | ID | State |
 |---|---|---|---|
-| Fauxel build sprint: builds and tests the next ready roadmap item itself, pushes finished files to `main`, updates this file | Tue + Fri 1:17 PM | trig_018XatVShzJ5uCt9YrEUwLfZ | active, auto approval |
+| Fauxel morning build: finishes open work, full stack shakedown on real data, then the roadmap; replaces "Fauxel Daily" and the build sprint | Daily, morning | — | active, no repo push access (commits land on KA's PC) |
+| Fauxel Daily | Daily 1:17 PM | trig_01DzJPeYofrffjdJatV4xSWg | replaced by the morning build |
+| Fauxel build sprint | Tue + Fri 1:17 PM | trig_018XatVShzJ5uCt9YrEUwLfZ | disabled (replaced) |
 | Fauxel ecosystem watch: weekly dependency/API/license check, updates ecosystem-watch.md | Mon 5:37 AM | — | not created (blocked by the approval check; KA to approve) |

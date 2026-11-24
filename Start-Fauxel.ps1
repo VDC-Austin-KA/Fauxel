@@ -155,6 +155,10 @@ if (-not $SkipUpdate) {
     if ($dirty) { Note 'Repository' 'WARN' 'local edits found: not updating (commit or discard them to get the latest main)' }
     else {
       git fetch --quiet origin main
+      $ahead = [int](git rev-list --count origin/main..HEAD 2>$null)
+      if ($ahead -gt 0) { Note 'Repository' 'WARN' "$ahead local commit(s) not on origin/main: not updating (run git push, then re-run)"; $SkipUpdate = $true }
+    }
+    if (-not $dirty -and -not $SkipUpdate) {
       git checkout -q -B main origin/main
       # Line endings: .gitattributes keeps container scripts LF; re-checkout once so an old CRLF checkout is fixed.
       git config core.autocrlf false

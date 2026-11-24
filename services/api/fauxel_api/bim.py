@@ -14,7 +14,15 @@ from .domain import trade_for_class
 
 # ---------- shared helpers ----------
 
-def get_or_create_building(conn, pid, name: str = "Building 1"):
+def get_or_create_building(conn, pid, name: str | None = None):
+    """Named building, or (no name: host exports carry none) the project's main building, else "Building 1"."""
+    if name is None:
+        row = conn.execute(
+            "SELECT b.id FROM buildings b WHERE b.project_id = %s "
+            "ORDER BY (SELECT count(*) FROM levels l WHERE l.building_id = b.id) DESC, b.name LIMIT 1", (pid,)).fetchone()
+        if row:
+            return row["id"]
+        name = "Building 1"
     row = conn.execute(
         "INSERT INTO buildings (project_id, name) VALUES (%s, %s) "
         "ON CONFLICT (project_id, name) DO UPDATE SET name = EXCLUDED.name RETURNING id", (pid, name)).fetchone()
@@ -167,10 +175,18 @@ def finish_model(conn, model_id, count: int) -> dict:
 
 # ---------- Revit / Navisworks export import ----------
 
+HOST_EXTS = (".nwd", ".nwc", ".nwf", ".rvt")
+
+
+def model_stem(name: str) -> str:
+    """Host doc titles carry the extension or not depending on Windows' "hide extensions" setting."""
+    return name[: -len(ext)] if (ext := next((x for x in HOST_EXTS if name.lower().endswith(x)), None)) and len(name) > len(ext) else name
+
+
 def import_export(conn, pid, payload: dict) -> dict:
     building = get_or_create_building(conn, pid)
     levels = {lv["name"]: upsert_level(conn, pid, building, lv["name"], lv["elevation_m"]) for lv in payload["levels"]}
-    model = create_model(conn, pid, payload["model_name"], payload["source"], host_version=payload["host_version"],
+    model = create_model(conn, pid, model_stem(payload["model_name"]), payload["source"], host_version=payload["host_version"],
                          shared_transform=[float(v) for v in payload["shared_transform"]])
     zones: dict[tuple, uuid.UUID] = {}
     rows = []
@@ -192,6 +208,9 @@ def import_export(conn, pid, payload: dict) -> dict:
     rows, dups = dedupe_rows(rows)
     resolve_uids(conn, pid, rows)
     write_elements(conn, pid, model["id"], rows)
+    # re-sent elements moved to this model; older models must stop counting them
+    conn.execute("UPDATE bim_models m SET element_count = (SELECT count(*) FROM bim_elements e WHERE e.model_id = m.id) "
+                 "WHERE m.project_id = %s AND m.id <> %s AND m.element_count IS NOT NULL", (pid, model["id"]))
     return {**finish_model(conn, model["id"], len(rows)), "duplicates": dups}
 
 

@@ -62,10 +62,10 @@ def save_three_legged(conn, vault: Vault, token: dict, project_id=None, subject:
 
 
 def find_three_legged(conn, project_id=None):
-    """Project-specific token first, then the installation-wide one."""
+    """Account-wide sign-in first (decision 2026-11-24); a legacy project-scoped row is only a fallback."""
     return conn.execute(
         "SELECT * FROM integration_tokens WHERE provider = %s AND kind = 'three_legged' AND (project_id = %s OR project_id IS NULL) "
-        "ORDER BY (project_id IS NULL), updated_at DESC LIMIT 1", (PROVIDER, project_id)).fetchone()
+        "ORDER BY (project_id IS NOT NULL), updated_at DESC LIMIT 1", (PROVIDER, project_id)).fetchone()
 
 
 class TokenManager:

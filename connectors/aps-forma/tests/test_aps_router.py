@@ -399,3 +399,15 @@ def test_webhook_ignores_failed_and_unknown_models(app_client, db, project):
 def test_webhook_rejects_everything_without_configured_secret(app_client):
     app_client.app.state.aps_config.webhook_secret = ""
     assert post_event(app_client, fx.webhook_event(URN)).status_code == 403
+
+
+def test_account_wide_signin_wins_over_legacy_project_row(app_client, db, project):
+    """A pre-Nov-24 project-scoped sign-in must not shadow the account-wide one (decision 2026-11-24)."""
+    from fauxel_aps.tokens import find_three_legged
+    v = Vault(KEY)
+    db.execute("DELETE FROM integration_tokens WHERE provider='aps'")
+    for pid, tok in ((None, "account"), (project, "legacy")):
+        db.execute("INSERT INTO integration_tokens (provider, kind, project_id, access_token_enc, expires_at) "
+                   "VALUES ('aps','three_legged',%s,%s, now() + interval '1 hour')", (pid, v.enc(tok)))
+    assert v.dec(find_three_legged(db, project)["access_token_enc"]) == "account"
+    assert v.dec(find_three_legged(db, None)["access_token_enc"]) == "account"

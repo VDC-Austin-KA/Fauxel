@@ -15,6 +15,9 @@ import Minimap from "@/viewer/Minimap";
 import PanoView from "@/viewer/PanoView";
 import { ViewBus } from "@/viewer/ViewBus";
 
+type Layout = "split" | "pano" | "bim" | "plan";
+const LAYOUTS: [Layout, string][] = [["split", "360° + model"], ["plan", "360° + plan"], ["pano", "360° only"], ["bim", "Model only"]];
+
 const poseOf = (f?: Frame) => (f ? { x: f.x, y: f.y, z: f.z, heading: quatToHeading(f.qw, f.qx, f.qy, f.qz) } : undefined);
 
 export default function Viewer() {
@@ -37,6 +40,8 @@ export default function Viewer() {
   const [alignOn, setAlignOn] = useState(false);
   const [pairs, setPairs] = useState<AlignPair[]>([]);
   const [bimMode, setBimMode] = useState<BimMode>("orbit");
+  const [layout, setLayout] = useState<Layout>(() => { try { return (localStorage.getItem("fauxel.viewerLayout") as Layout) || "split"; } catch { return "split"; } });
+  const pickLayout = (l: Layout) => { setLayout(l); try { localStorage.setItem("fauxel.viewerLayout", l); } catch { /* private mode */ } };
   const [selected, setSelected] = useState<string | null>(null);
   const pending = useRef<{ frameId?: string; x?: number } | null>(null);
   const [, force] = useState(0);
@@ -119,6 +124,7 @@ export default function Viewer() {
     bus.set(v, "select");
   }, [frame, bus]);
 
+  const selectAndLook = (e: Element) => { setSelected(e.element_uid); lookAt(e); };
   const jump = (f: Frame) => { const i = frames.findIndex((x) => x.id === f.id); if (i >= 0) setFrameIdx(i); };
   const setDate = (i: number) => { if (frame) pending.current = { x: frame.x }; setDateIdx(i); };
   const step = useCallback((d: number) => setFrameIdx((i) => Math.max(0, Math.min(frames.length - 1, i + d))), [frames.length]);
@@ -174,7 +180,7 @@ export default function Viewer() {
   const sel = selected ? elementMap.get(selected) : undefined;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={`flex flex-col gap-3 ${selected ? "lg:mr-[24rem]" : ""}`}>
       <PageHeader title="Reality viewer" sub={`${level?.name ?? ""} · ${capture ? labelOf(capture) : ""} · ${capture?.camera_model ?? ""}${capture?.rmse_m != null ? ` · alignment RMSE ${(capture.rmse_m * 1000).toFixed(0)} mm` : ""}`} />
 
       <Card pad={false}>
@@ -191,7 +197,12 @@ export default function Viewer() {
           <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={compareOn} disabled={levelCaps.length < 2} onChange={(e) => setCompareOn(e.target.checked)} /> Compare dates <Kbd>C</Kbd></label>
           {compareOn && levelCaps.length > 1 && <Select label="vs" value={String(ci === di ? (di === 0 ? 1 : 0) : ci)} onChange={(v) => setCompareIdx(Number(v))} options={levelCaps.map((c, i) => ({ value: String(i), label: formatDate(c.captured_at) })).filter((o) => Number(o.value) !== di)} />}
           <label className="flex items-center gap-1.5 text-sm"><input type="checkbox" checked={alignOn} onChange={(e) => { setAlignOn(e.target.checked); if (!e.target.checked) setPairs([]); }} /> 3-point align</label>
-          <div className="flex overflow-hidden rounded-lg border border-slate-300 text-sm" role="group" aria-label="BIM camera mode">
+          <div className="flex overflow-hidden rounded-lg border border-slate-300 text-sm" role="group" aria-label="View layout">
+            {LAYOUTS.map(([l, label]) => (
+              <button key={l} type="button" aria-pressed={layout === l} onClick={() => pickLayout(l)} className={`px-2.5 py-1.5 ${layout === l ? "bg-sky-700 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}>{label}</button>
+            ))}
+          </div>
+          <div className={`flex overflow-hidden rounded-lg border border-slate-300 text-sm ${layout === "split" || layout === "bim" ? "" : "hidden"}`} role="group" aria-label="BIM camera mode">
             {(["orbit", "look"] as const).map((m) => (
               <button key={m} type="button" aria-pressed={bimMode === m} onClick={() => setBimMode(m)} className={`px-2.5 py-1.5 ${bimMode === m ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}>{m === "orbit" ? "Orbit + cone" : "Look-through"}</button>
             ))}
@@ -199,15 +210,20 @@ export default function Viewer() {
         </div>
       </Card>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="h-[46vh] min-h-[340px]">
+      <div className={`grid gap-3 ${layout === "split" || layout === "plan" ? "md:grid-cols-2" : ""}`}>
+        <div className={`${layout === "bim" ? "hidden" : ""} ${layout === "pano" ? "h-[68vh]" : "h-[46vh]"} min-h-[340px]`}>
           {framesQ.isPending ? <Loading /> : frames.length === 0 ? <EmptyState title="This capture has no frames yet" hint="Frames appear after keyframe extraction finishes." /> : (
             <PanoView bus={bus} imageUrl={img.data} compareUrl={compareOn ? cImg.data : undefined} wipe={wipe} onWipe={setWipe} overlay={overlay.data ?? []} overlayOn={overlayOn} elements={elementMap}
               selectedUid={selected} onSelect={(u) => { setSelected(u); }} alignMode={alignOn} alignMarkers={alignMarkers} onAlignPick={onAlignPick}
               labelA={labelOf(capture)} labelB={labelOf(compareCap)} />
           )}
         </div>
-        <div className="h-[46vh] min-h-[340px]">
+        {layout === "plan" && (
+          <div className="flex h-[46vh] min-h-[340px] items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-2">
+            <Minimap level={level} frames={frames} current={frame} onPick={jump} bus={bus} zonePct={zonePct} selected={sel} elements={els.data?.items} onSelectElement={selectAndLook} className="max-h-full" />
+          </div>
+        )}
+        <div className={`${layout === "split" ? "h-[46vh]" : layout === "bim" ? "h-[68vh]" : "hidden"} min-h-[340px]`}>
           <BimView bus={bus} elements={els.data?.items ?? []} levelId={levelId} cam={cam} mode={bimMode} selectedUid={selected}
             onSelect={(u) => { setSelected(u); }} alignMode={alignOn} onPickPoint={onBimPick} alignPoints={alignPts} modelIds={currentModelIds(models.data)} />
         </div>
@@ -215,13 +231,14 @@ export default function Viewer() {
 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card title="Floorplan minimap" actions={<span className="text-xs text-slate-500 tabnum">Frame {frames.length ? fi + 1 : 0} / {frames.length}</span>}>
-          <Minimap level={level} frames={frames} current={frame} onPick={jump} yaw={bus.state.yaw} zonePct={zonePct} selected={sel} />
+          {layout !== "plan" && <Minimap level={level} frames={frames} current={frame} onPick={jump} bus={bus} zonePct={zonePct} selected={sel} elements={els.data?.items} onSelectElement={selectAndLook} />}
+          {layout === "plan" && <p className="text-xs text-slate-500">The plan is shown next to the 360° view.</p>}
           <div className="mt-2 flex items-center gap-2">
             <Button onClick={() => step(-1)} disabled={fi <= 0} aria-label="Previous frame">← Prev</Button>
             <input type="range" min={0} max={Math.max(0, frames.length - 1)} value={fi} onChange={(e) => setFrameIdx(Number(e.target.value))} className="flex-1 accent-sky-600" aria-label="Walk path frame" />
             <Button onClick={() => step(1)} disabled={fi >= frames.length - 1} aria-label="Next frame">Next →</Button>
           </div>
-          <p className="mt-1 text-[11px] text-slate-500"><Kbd>←</Kbd> <Kbd>→</Kbd> step frames · drag to look · scroll to zoom · <Kbd>Shift</Kbd>+arrows rotate</p>
+          <p className="mt-1 text-[11px] text-slate-500"><Kbd>←</Kbd> <Kbd>→</Kbd> step frames · drag to look · scroll to zoom · <Kbd>Shift</Kbd>+arrows rotate · click the plan to turn the camera, click an element on the plan to look at it</p>
         </Card>
         <Card title={alignOn ? "Manual alignment" : "Legend & selection"}>
           {alignOn ? (

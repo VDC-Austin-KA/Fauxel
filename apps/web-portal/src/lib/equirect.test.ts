@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   convexHull, headingToQuat, polygonContains, projectAabbPolygon, projectPoint, quatToHeading,
-  uvToYawPitch, viewToWorldDir, worldDirToView, wrapPi, yawPitchToUV,
+  uvToYawPitch, viewToWorldDir, worldDirToView, wrapPi, yawPitchToUV, yawToward,
 } from "./equirect";
 
 const close = (a: number, b: number, eps = 1e-9) => expect(Math.abs(a - b)).toBeLessThan(eps);
@@ -69,5 +69,17 @@ describe("polygons", () => {
     expect(poly).not.toBeNull();
     expect(polygonContains(poly!, 0.5, 0.45)).toBe(true);
     expect(projectAabbPolygon([-6, -1, 0], [-5, 1, 3], cam)).toBeNull();
+  });
+});
+
+describe("yawToward (plan click-to-look)", () => {
+  it("a point straight ahead is yaw 0; a point to the right (clockwise) is positive yaw", () => {
+    close(yawToward(0, 0, 0, 5, 0), 0);
+    close(yawToward(0, 0, 0, 0, -5), Math.PI / 2);   // east-facing camera, point to the south = its right
+    close(yawToward(Math.PI / 2, 2, 2, 2, 9), 0);    // north-facing camera, point to the north
+  });
+  it("the minimap wedge azimuth (heading - yaw) points at the clicked point", () => {
+    const h = 1.1, y = yawToward(h, 1, 1, -3, 4);
+    close(wrapPi(h - y), Math.atan2(4 - 1, -3 - 1));
   });
 });

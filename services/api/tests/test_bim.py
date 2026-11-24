@@ -140,6 +140,25 @@ def test_revit_import(client, pid):
     assert len(client.get(f"{API}/projects/{pid}/elements").json()) == 2
 
 
+def test_host_export_joins_existing_building(client, pid, db_url):
+    """Plugin exports carry no building: they join the project's building (e.g. "MOB" from Forma Locations), not a new "Building 1"."""
+    import psycopg
+    with psycopg.connect(db_url, autocommit=True) as c:
+        c.execute("INSERT INTO buildings (project_id, name) VALUES (%s, 'MOB')", (pid,))
+    assert client.post(f"{API}/projects/{pid}/models/import", json=revit_payload()).status_code == 201
+    assert [b["name"] for b in client.get(f"{API}/projects/{pid}/lbs").json()["buildings"]] == ["MOB"]
+
+
+def test_host_title_with_or_without_extension_is_one_model(client, pid):
+    """Navisworks/Revit doc.Title shows the extension or not depending on a Windows setting ("4D" vs "4D.nwd")."""
+    for name in ("4D", "4D.nwd"):
+        assert client.post(f"{API}/projects/{pid}/models/import", json=revit_payload(model_name=name, source="navisworks")).status_code == 201
+    ms = [m for m in client.get(f"{API}/projects/{pid}/models").json() if m["source"] == "navisworks"]
+    assert sorted((m["name"], m["version"]) for m in ms) == [("4D", 1), ("4D", 2)]
+    # elements moved to the new version, so the old one no longer claims them
+    assert {m["version"]: m["element_count"] for m in ms} == {1: 0, 2: 2}
+
+
 @pytest.mark.parametrize("mutate", [
     lambda p: p.pop("shared_transform"),
     lambda p: p.update(units="ft"),
