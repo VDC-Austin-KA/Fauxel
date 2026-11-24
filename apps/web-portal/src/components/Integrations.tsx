@@ -56,8 +56,8 @@ export function ApsCard({ pid }: { pid: string }) {
   const [proj, setProj] = useState<string>("");
   const hubId = hub || cfg?.hub_id || "";
   const projId = proj || cfg?.aps_project_id || "";
-  const hubs = useQuery({ queryKey: ["aps", "hubs"], queryFn: api.apsHubs, enabled: connected, retry: false });
-  const projects = useQuery({ queryKey: ["aps", "projects", hubId], queryFn: () => api.apsProjects(hubId), enabled: connected && !!hubId, retry: false });
+  const hubs = useQuery({ queryKey: ["aps", "hubs", pid], queryFn: () => api.apsHubs(pid), enabled: connected, retry: false });
+  const projects = useQuery({ queryKey: ["aps", "projects", hubId, pid], queryFn: () => api.apsProjects(hubId, pid), enabled: connected && !!hubId, retry: false });
   const hasCfg = !!(cfg?.hub_id && cfg?.aps_project_id);
   const models = useQuery({ queryKey: ["aps", "models", pid, cfg?.hub_id, cfg?.aps_project_id], queryFn: () => api.apsModels(pid), enabled: connected && hasCfg, retry: false });
   const [dry, setDry] = useState(true);

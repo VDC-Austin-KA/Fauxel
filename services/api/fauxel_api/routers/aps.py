@@ -207,14 +207,14 @@ def write_config(pid: uuid.UUID, body: ApsConfigIn, conn=Depends(get_conn, scope
 
 @router.get("/integrations/aps/hubs")
 @_wrap
-def list_hubs(request: Request, conn=Depends(get_conn, scope="function")):
-    return DataManagement(_session(request, conn)).hubs()
+def list_hubs(request: Request, project_id: Optional[uuid.UUID] = None, conn=Depends(get_conn, scope="function")):
+    return DataManagement(_session(request, conn, project_id)).hubs()
 
 
 @router.get("/integrations/aps/hubs/{hub_id}/projects")
 @_wrap
-def list_aps_projects(hub_id: str, request: Request, conn=Depends(get_conn, scope="function")):
-    return DataManagement(_session(request, conn)).projects(hub_id)
+def list_aps_projects(hub_id: str, request: Request, project_id: Optional[uuid.UUID] = None, conn=Depends(get_conn, scope="function")):
+    return DataManagement(_session(request, conn, project_id)).projects(hub_id)
 
 
 @router.get("/projects/{pid}/aps/models")

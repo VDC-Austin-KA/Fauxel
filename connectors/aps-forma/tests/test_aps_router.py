@@ -118,6 +118,14 @@ def test_login_callback_status_and_encrypted_storage(app_client, db):
                    headers=html, follow_redirects=False)
     assert denied.status_code == 303 and denied.headers["location"] == "http://localhost:8000/settings?aps_error=APS+login+failed%3A+User+denied#autodesk"
 
+    # the browser sign-in was stored for this project only: hub/project lists must find it when asked for that project
+    db.execute("DELETE FROM integration_tokens WHERE provider='aps' AND project_id IS NULL")
+    respx.get(f"{BASE}/project/v1/hubs").mock(return_value=httpx.Response(200, json=fx.HUBS))
+    respx.get(f"{BASE}/project/v1/hubs/b.hub-1/projects").mock(return_value=httpx.Response(200, json={"data": []}))
+    assert c.get("/api/v1/integrations/aps/hubs").status_code == 401
+    assert c.get("/api/v1/integrations/aps/hubs", params={"project_id": pid}).json()[0]["id"] == "b.hub-1"
+    assert c.get("/api/v1/integrations/aps/hubs/b.hub-1/projects", params={"project_id": pid}).status_code == 200
+
 
 @respx.mock
 def test_expired_token_is_refreshed_and_rotated(app_client, db):
