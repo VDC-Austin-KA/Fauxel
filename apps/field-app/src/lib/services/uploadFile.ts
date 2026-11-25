@@ -1,31 +1,43 @@
-import { File, UploadType } from 'expo-file-system';
+import { File, FileMode } from 'expo-file-system';
+import { fetch as expoFetch } from 'expo/fetch';
 import type { FileUploader } from '../queue/worker';
-import { apiRoot, Session } from '../api/fauxel';
+import { apiRoot, FauxelApi, Session } from '../api/fauxel';
+import { uploadCapture } from '../upload/multipart';
 
 /**
- * Native multipart upload of one file to POST /projects/{pid}/captures (streamed from disk, with progress, so
- * multi-hundred-MB videos never enter JS memory). The v1 contract has no chunk/append endpoint, so "chunking" is
- * per file; each accepted POST becomes one capture. Cloudflare rejects bodies over 100 MB on Free/Pro plans:
- * oversized files need the direct/LAN URL (see README).
+ * Resumable capture upload (M8.1): direct multipart parts of 16-64 MB, read from disk one part at a time, so a
+ * multi-GB walk never enters JS memory whole and never hits Cloudflare's 100 MB body cap. The upload id/key are
+ * checkpointed into the queue item; a retry sends only the parts the server is missing. See ../upload/multipart.ts.
  */
 export function makeFileUploader(session: Session): FileUploader {
-  return async (item, onProgress) => {
-    const p = item.payload as { uri: string; name: string; mime: string; levelId?: string; capturedAt: string; cameraModel: string };
+  const api = new FauxelApi(session);
+  const root = apiRoot(session.baseUrl);
+  return async (item, onProgress, checkpoint) => {
+    const p = item.payload as {
+      uri: string; name: string; mime: string; levelId?: string; capturedAt: string; cameraModel: string; uploadId?: string; uploadKey?: string;
+    };
     const file = new File(p.uri);
     if (!file.exists) throw new Error('local file missing');
-    const parameters: Record<string, string> = { captured_at: p.capturedAt, camera_model: p.cameraModel, source: 'insta360' };
-    if (p.levelId) parameters.level_id = p.levelId;
-    const res = await file.upload(`${apiRoot(session.baseUrl)}/projects/${item.projectId}/captures`, {
-      uploadType: UploadType.MULTIPART,
-      fieldName: 'files[]',
-      mimeType: p.mime,
-      parameters,
-      headers: { 'X-Fauxel-Key': session.apiKey, Accept: 'application/json' },
-      sessionType: 'foreground',
-      onProgress: ({ bytesSent, totalBytes }) => onProgress(bytesSent, totalBytes),
-    });
-    const ra = res.headers?.['retry-after'] ?? res.headers?.['Retry-After'];
-    return { status: res.status, body: res.body, retryAfterMs: ra && /^\d+$/.test(ra) ? Number(ra) * 1000 : undefined };
+    const putPart = async (url: string, start: number, end: number, auth: boolean) => {
+      const h = file.open(FileMode.ReadOnly);
+      let bytes: Uint8Array<ArrayBuffer>;
+      try {
+        h.offset = start;
+        bytes = await h.readBytes(end - start);
+      } finally {
+        h.close();
+      }
+      if (bytes.length !== end - start) throw new Error('local file changed during upload');
+      // the API key only goes to the Fauxel API, never to a presigned storage URL
+      const r = await expoFetch(url, { method: 'PUT', body: bytes, headers: auth ? api.headers() : {} });
+      return { status: r.status, etag: r.headers.get('ETag') };
+    };
+    const cap = await uploadCapture(
+      { projectId: item.projectId, name: p.name, size: file.size ?? 0, mime: p.mime, levelId: p.levelId, capturedAt: p.capturedAt,
+        cameraModel: p.cameraModel, uploadId: p.uploadId, uploadKey: p.uploadKey },
+      { api: (m, path, body) => (m === 'GET' ? api.get(path) : api.postJson(path, body)), putPart, checkpoint, apiRoot: root, onProgress },
+    );
+    return { status: 201, body: JSON.stringify(cap) };
   };
 }
 

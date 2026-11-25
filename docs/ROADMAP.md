@@ -1,6 +1,6 @@
 # Fauxel Roadmap & Status
 
-Last updated: 2026-11-25 (morning build: Forma Revit import fixed for current Model Derivative output, first live import of Snowdon Towers Structural (1,616 elements), worker container on the current image, collapsible element panel in the Reality viewer; pushed from KA's PC) · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (Claude builds and tests locally, pushes finished files to `main`; no GitHub Actions)
+Last updated: 2026-11-25 (morning build: Forma Revit import fixed for current Model Derivative output, first live import of Snowdon Towers Structural (1,616 elements), worker container on the current image, collapsible element panel in the Reality viewer, M8.1 resumable field-app upload landed on main; pushed from KA's PC) · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (Claude builds and tests locally, pushes finished files to `main`; no GitHub Actions)
 
 Status keys: `todo` · `in-progress` · `done` (tested and pushed to main) · `blocked`
 
@@ -34,7 +34,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | M4.3 | Remaining trade heads: structural, HVAC, electrical, plumbing/FP | 4 | M4.2, M3.2 | Per-trade eval report | in-progress: eval report + release gate built (`python -m fauxel_cv.evaluate`, [spec](specs/M4.3-trade-heads-eval.md)); training waits on verified samples from real walks |
 | M1.5 | APS / Forma adapter: OAuth 2/3-legged, AEC Data Model, Model Derivative, Issues, Photos, Locations, Assets, webhooks | 1 | M1.3 | Issue with a 3D pin created from a deviation in a test hub | done |
 | M1.6 | Speckle connector | 1 | M1.1 | Commit streamed and diffed | done |
-| M8.1 | Field app: OSC control, floorplan-guided walk, resumable tus upload | 8 | M2.1 | Controls a ONE X2 over OSC (192.168.42.1), captures and uploads to dev | in-progress: resumable direct-multipart slice built Nov 23 (`claude/patches/M8.1-slice2.patch` in the Project, not yet on main); needs on-device test with the ONE X2 |
+| M8.1 | Field app: OSC control, floorplan-guided walk, resumable tus upload | 8 | M2.1 | Controls a ONE X2 over OSC (192.168.42.1), captures and uploads to dev | in-progress: resumable direct-multipart capture upload on main (Nov 25; part-level resume, presigned URLs, no 100 MB cap); needs an on-device test with the ONE X2 |
 
 ## Decision log
 | Date | Decision | Source |
@@ -96,9 +96,11 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 - M2.5: blocked on KA's OpenSpace API documentation (no endpoints guessed)
 
 ## Review follow-ups (medium/low, open)
-Job heartbeat for long stitches; row locking between CV processing and human checks; bbox-local masks + batched mesh loads for 10k+ element models; skip boxes that contain the camera; streamed multipart uploads; webhook body cap; defusedxml everywhere; Revit workshared checkout handling; Navisworks single-pass property reads; SharedParams restore order; TimeLiner date compare; phone app Access headers + direct-to-R2 uploads.
+Job heartbeat for long stitches; row locking between CV processing and human checks; bbox-local masks + batched mesh loads for 10k+ element models; skip boxes that contain the camera; streamed multipart uploads; webhook body cap; defusedxml everywhere; Revit workshared checkout handling; Navisworks single-pass property reads; SharedParams restore order; TimeLiner date compare; phone app Access headers.
 
 ## Open questions for KA
+- **Cloudflare blocks non-browser uploads to fauxel-files** (error 1010, Browser Integrity Check): presigned part PUTs from scripts or the field app get 403 before reaching storage; portal uploads in a browser are unaffected. Fix in the Cloudflare dashboard (KA): a Configuration Rule for `fauxel-files.ackerworks.com` with Browser Integrity Check off (the presigned signature still guards every PUT). Scheduled runs do not change Cloudflare settings
+- A `Fauxel Shakedown` project now exists for scheduled end-to-end checks (2 IFC models, P6 XER, one 360° photo). Keep it, or say if it should be deleted
 - Scheduled runs push from KA's PC (C:\Fauxel git credentials); the cloud token for VDC-Austin-KA/Fauxel is invalid. Fine as is unless KA wants runs to work with the PC off
 - Forma models import with placeholder boxes (no geometry in Model Derivative). Want an SVF2/IFC geometry pass for Forma-only models (bigger job), or rely on the Revit plugin export for boxes?
 - A legacy project-scoped Autodesk token row remains for Cedar Park MOB (now unused). Delete it? (`DELETE FROM integration_tokens WHERE provider='aps' AND kind='three_legged' AND project_id IS NOT NULL`)

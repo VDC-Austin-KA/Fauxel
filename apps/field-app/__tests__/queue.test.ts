@@ -168,6 +168,16 @@ describe('drainQueue', () => {
     expect(store.items[0].status).toBe('processing');
   });
 
+  it('upload checkpoints persist in the payload and survive a failed attempt', async () => {
+    const store = memStore([item()]);
+    const upload = async (_i: QueueItem, _p: unknown, cp: (x: Record<string, unknown>) => Promise<void>) => {
+      await cp({ uploadId: 'u9' });
+      return { status: 503, body: 'busy' };
+    };
+    await drainQueue({ store, api: fakeApi(), uploadFile: upload, gate: async () => open, rand: mid });
+    expect(store.items[0]).toMatchObject({ status: 'queued', payload: { name: 'walk.mp4', uploadId: 'u9' } });
+  });
+
   it('deviation waits for its capture to be accepted, then posts JSON', async () => {
     const cap = item({ id: 'cap' });
     const dev = item({ id: 'dev', kind: 'deviation', dependsOn: 'cap', payload: { kind: 'missing', note: 'x' } });

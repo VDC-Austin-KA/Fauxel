@@ -9,6 +9,8 @@ export interface QueueStore {
 export type FileUploader = (
   item: QueueItem,
   onProgress: (sent: number, total: number) => void,
+  /** Persist resume state (e.g. multipart upload id) into the item's payload before the attempt ends. */
+  checkpoint: (patch: Record<string, unknown>) => Promise<void>,
 ) => Promise<{ status: number; body: string; retryAfterMs?: number }>;
 
 export type WorkerDeps = {
@@ -67,6 +69,9 @@ export async function drainQueue(d: WorkerDeps): Promise<{ uploaded: number; blo
         const res = await d.uploadFile(cur, (sent, total) => {
           cur = reduce(cur, { type: 'PROGRESS', sent, total }, d.rand);
           d.onChange?.(cur); // progress is not persisted per tick
+        }, async (patch) => {
+          cur = { ...cur, payload: { ...cur.payload, ...patch } };
+          await d.store.save(cur);
         });
         if (res.status >= 300) throw new ApiError(`HTTP ${res.status} ${res.body.slice(0, 160)}`, res.status, res.retryAfterMs);
         try {
