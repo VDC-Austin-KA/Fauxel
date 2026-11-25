@@ -30,6 +30,7 @@ try:
     import fauxel_aps as aps
     from fauxel_aps import tokens as aps_tokens
     from fauxel_aps.assets import Assets, match_assets, status_id_for
+    from fauxel_aps.bimexport import category_of
     from fauxel_aps.datamanagement import DataManagement
     from fauxel_aps.issues import Issues, deviation_to_issue, upload_issue_attachment
     from fauxel_aps.locations import Locations, classify
@@ -292,6 +293,8 @@ def _import(conn, request: Request, pid, body: ImportModelIn, *, link_only_updat
         md = ModelDerivative(s, sleep=getattr(request.app.state, "aps_sleep", time.sleep), poll_seconds=2.0)
         view = md.pick_3d_view(urn)
         collection = md.properties(urn, view["guid"])
+        if any(category_of(o) is None for o in collection):
+            collection = aps.with_tree_categories(collection, md.object_tree(urn, view["guid"]))
         name = body.model_name or view.get("name") or name
         aps_ids = {o["externalId"]: o["externalId"] for o in collection if o.get("externalId")}
     else:

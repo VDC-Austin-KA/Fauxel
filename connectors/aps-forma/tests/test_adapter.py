@@ -230,6 +230,25 @@ def test_bim_export_validates_against_contract_schema(tmp_path):
     assert duct["quantity"] == 3.0 and duct["quantity_unit"] == "m" and duct["trade"] == "hvac" and duct["level"] == "Level 2"
 
 
+def test_revit_md_without_category_group_takes_category_from_object_tree():
+    # Current Model Derivative output for Revit (seen on Snowdon Towers, Nov 2026): no `__category__` group, lengths
+    # as "12.5 ft-and-fractional-in"; the category is the object tree's second node.
+    from fauxel_aps.bimexport import with_tree_categories
+    col = [{"objectid": 459, "name": "Basic Wall [585072]", "externalId": "w-uid", "properties": {
+               "Constraints": {"Base Constraint": "L1", "Unconnected Height": "76.750 ft-and-fractional-in"},
+               "Dimensions": {"Area": "120.000 ft^2"}}},
+           {"objectid": 144, "name": "Walls", "externalId": "Walls:", "properties": {}}]
+    tree = [{"objectid": 1, "name": "Model", "objects": [{"objectid": 144, "name": "Walls", "objects": [
+        {"objectid": 145, "name": "Basic Wall", "objects": [{"objectid": 146, "name": "Concrete 10\"", "objects": [
+            {"objectid": 459, "name": "Basic Wall [585072]"}]}]}]}]}]
+    payload, rep = build_bim_export("s", with_tree_categories(col, tree), placeholder_box=True)
+    assert rep["elements"] == 1 and rep["skipped_non_physical"] == 1  # the category node itself has no category
+    w = payload["elements"][0]
+    assert w["category"] == "Walls" and w["level"] == "L1" and w["quantity_unit"] == "m2"
+    assert w["quantity"] == pytest.approx(120 * 0.3048 ** 2)
+    assert parse_length_m("76.750 ft-and-fractional-in") == pytest.approx(76.75 * 0.3048)
+
+
 def test_placeholder_box_flagged():
     payload, rep = build_bim_export("t", fx.MD_PROPS["data"]["collection"], placeholder_box=True)
     assert rep["placeholder_boxes"] == 3 and len(payload["elements"]) == 3

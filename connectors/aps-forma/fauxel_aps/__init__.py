@@ -2,7 +2,7 @@
 from .aecdm import AecDataModel
 from .assets import Assets
 from .auth import authorize_url, client_credentials, exchange_code, new_pkce, new_state, refresh
-from .bimexport import build_bim_export
+from .bimexport import build_bim_export, with_tree_categories
 from .config import ApsConfig
 from .datamanagement import DataManagement, strip_b, urn_b64, urn_from_b64, with_b
 from .errors import ApsAuthError, ApsError, ApsPending, ApsRateLimited

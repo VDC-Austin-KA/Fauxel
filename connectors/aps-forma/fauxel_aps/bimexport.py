@@ -12,7 +12,7 @@ from typing import Iterable
 
 FT = 0.3048
 _LEN = {"m": 1.0, "mm": 0.001, "cm": 0.01, "ft": FT, "in": 0.0254, "'": FT, '"': 0.0254}
-_QTY_RE = re.compile(r"^\s*(-?\d+(?:[.,]\d+)?)\s*([a-zA-Z'\"\^²³0-9]*)\s*$")
+_QTY_RE = re.compile(r"^\s*(-?\d+(?:[.,]\d+)?)\s*([a-zA-Z'\"\^²³0-9]*)(?:-and-fractional-[a-z]+)?\s*$")  # Revit "12.5 ft-and-fractional-in"
 
 NON_PHYSICAL = {"levels", "grids", "cameras", "sheets", "views", "project information", "materials", "rooms", "areas",
                 "scope boxes", "reference planes", "lines", "model groups", "detail groups", "revision clouds", "text notes",
@@ -75,6 +75,17 @@ def _find(props: dict, *names: str):
                 if k.lower() in wanted and not isinstance(v, dict):
                     return v
     return None
+
+
+def with_tree_categories(collection: list[dict], tree: list[dict]) -> list[dict]:
+    """Current Model Derivative property collections for Revit carry no `__category__` group; the category is the
+    second node of the object tree (model > category > family > type > instance). Fill it in where it is missing."""
+    from .modelderivative import walk_tree
+    cats = {o.get("objectid"): path[1] for o, path in walk_tree(tree) if len(path) >= 2}
+    for o in collection:
+        if category_of(o) is None and o.get("objectid") in cats:
+            o["properties"] = {**(o.get("properties") or {}), "__category__": {"Category": cats[o["objectid"]]}}
+    return collection
 
 
 def category_of(obj: dict) -> str | None:

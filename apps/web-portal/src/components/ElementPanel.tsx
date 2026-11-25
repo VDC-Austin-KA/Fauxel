@@ -13,7 +13,7 @@ function Thumb({ frameId, label, onClick }: { frameId: string; label: string; on
   );
 }
 
-export default function ElementPanel({ uid, onClose, onOpenEvidence }: { uid: string | null; onClose?: () => void; onOpenEvidence?: (frameId: string, captureId: string) => void }) {
+export default function ElementPanel({ uid, onClose, onMinimize, onLook, onOpenEvidence }: { uid: string | null; onClose?: () => void; onMinimize?: () => void; onLook?: () => void; onOpenEvidence?: (frameId: string, captureId: string) => void }) {
   const q = useElement(uid);
   if (!uid) return null;
   return (
@@ -23,7 +23,11 @@ export default function ElementPanel({ uid, onClose, onOpenEvidence }: { uid: st
           <h2 className="text-base font-semibold text-slate-900">{q.data?.name ?? "Element"}</h2>
           <div className="text-xs text-slate-500">{q.data?.family_type}</div>
         </div>
-        {onClose && <Button variant="ghost" onClick={onClose} aria-label="Close element panel">✕</Button>}
+        <div className="flex shrink-0 items-center gap-1">
+          {onLook && <Button variant="ghost" onClick={onLook} aria-label="Turn the 360° view to this element">Look</Button>}
+          {onMinimize && <Button variant="ghost" onClick={onMinimize} aria-label="Collapse element panel">▸</Button>}
+          {onClose && <Button variant="ghost" onClick={onClose} aria-label="Close element panel">✕</Button>}
+        </div>
       </div>
       {q.isPending && <Loading />}
       {q.isError && <div className="p-4"><ErrorState error={q.error} onRetry={() => q.refetch()} /></div>}

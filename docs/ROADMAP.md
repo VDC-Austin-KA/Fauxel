@@ -1,6 +1,6 @@
 # Fauxel Roadmap & Status
 
-Last updated: 2026-11-24 (morning build: API redeployed with Forma import, account-wide Autodesk sign-in, Reality viewer layouts + plan click-to-look, host model naming fixes; commit pending push from KA's PC) · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (Claude builds and tests locally, pushes finished files to `main`; no GitHub Actions)
+Last updated: 2026-11-25 (morning build: Forma Revit import fixed for current Model Derivative output, first live import of Snowdon Towers Structural (1,616 elements), worker container on the current image, collapsible element panel in the Reality viewer; pushed from KA's PC) · Repo: [VDC-Austin-KA/Fauxel](https://github.com/VDC-Austin-KA/Fauxel) · Mode: **build** (Claude builds and tests locally, pushes finished files to `main`; no GitHub Actions)
 
 Status keys: `todo` · `in-progress` · `done` (tested and pushed to main) · `blocked`
 
@@ -73,6 +73,7 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 | 2026-11-24 | The account-wide Autodesk sign-in wins over a legacy project-scoped row; migration 004 moves a lone legacy row to account-wide (idempotent, newest kept) | Morning build: KA's PC had both rows |
 | 2026-11-24 | Revit/Navisworks exports: model name drops the host extension (`4D.nwd` = `4D`, Windows "hide extensions" changes doc.Title), older models recount their elements after a re-send, and an export with no building joins the project's main building instead of adding "Building 1" | Shakedown on Cedar Park MOB |
 | 2026-11-24 | Reality viewer layouts: 360°+model, 360°+plan, 360° only, model only (remembered per browser). The floorplan is the capture path: click or drag empty plan to turn the 360° camera, click an element footprint to select and look at it; the wedge follows the camera live. The element panel docks on wide screens instead of covering the viewers | KA |
+| 2026-11-25 | Model Derivative Revit imports take the category from the object tree when the property collection has no `__category__` group (current MD output), and parse `ft-and-fractional-in` values. Reality viewer element panel collapses to a pill and the viewers stack while it is open below 1280 px, so it never covers the 360° view or plan | Morning build: Snowdon Towers import returned 0 elements; KA (panel must not block the viewers) |
 | 2026-11-24 | `Start-Fauxel.ps1` no longer resets local `main` when it has commits not on origin (it silently discarded them); it warns and skips the update | Morning build lost its PC commit to `-DeployWeb` once |
 
 ## Spec gaps found in the phase docs
@@ -88,8 +89,9 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 - Revit 2025–2027: ribbon, shared parameter binding, "Fauxel Progress" view, internal→shared direction (`GetTotalTransform().Inverse`) on a model with a rotated survey point
 - Navisworks 2025–2027: bundle loading, TimeLiner TaskEdit, color overrides on real NWC/NWD
 - ONE X2: OSC option names, raw .insv stitch calibration (`python -m fauxel_capture.insta360 refine`), phone app on device
-- APS: live sign-in, hub list (hub "Fauxel") and Forma model list verified Nov 24 on KA's PC (Cedar Park MOB linked, 43 Forma files). Still to run: one Model Derivative import of a Revit model through the Autodesk card. Speckle against a live server
-- Portal through Cloudflare Access: the scheduled run's Chrome is not signed in to Access, so live page checks ran against the API on KA's PC (all GET endpoints 200)
+- APS: live sign-in, hub list (hub "Fauxel") and Forma model list verified Nov 24 on KA's PC (Cedar Park MOB linked, 43 Forma files). Nov 25: Snowdon Towers Sample Structural.rvt imported through Model Derivative (1,616 elements, placeholder boxes: MD carries no geometry, so real boxes arrive with a Revit plugin export or an IFC of the same model). Speckle against a live server
+- Portal through Cloudflare Access: neither KA's Chrome nor the built-in browser is signed in to Access for scheduled runs, so live checks ran against the API on KA's PC (Nov 25: every GET endpoint 200 on all 4 projects) and the portal UI was walked in demo mode with Playwright. Sign in once in Chrome (Access email code) to let runs check the live pages
+- Real captures: no project has a 360° capture yet, so the Reality viewer has only been exercised on demo data
 - M4.3: trade models need verified samples from real walks (≥ 2 captures, ≥ 50 held-out crops per trade), then train + `python -m fauxel_cv.evaluate --strict` on KA's PC
 - M2.5: blocked on KA's OpenSpace API documentation (no endpoints guessed)
 
@@ -97,7 +99,8 @@ The order is a vertical slice first: the open-source path, from capture to Revit
 Job heartbeat for long stitches; row locking between CV processing and human checks; bbox-local masks + batched mesh loads for 10k+ element models; skip boxes that contain the camera; streamed multipart uploads; webhook body cap; defusedxml everywhere; Revit workshared checkout handling; Navisworks single-pass property reads; SharedParams restore order; TimeLiner date compare; phone app Access headers + direct-to-R2 uploads.
 
 ## Open questions for KA
-- **Nov 24 morning build commit sits on KA's PC (C:\Fauxel, local `main`, not pushed)**: scheduled runs still have no push access. Run `cd C:\Fauxel; git push` once, or add the repo to the scheduled task from a claude.ai chat
+- Scheduled runs push from KA's PC (C:\Fauxel git credentials); the cloud token for VDC-Austin-KA/Fauxel is invalid. Fine as is unless KA wants runs to work with the PC off
+- Forma models import with placeholder boxes (no geometry in Model Derivative). Want an SVF2/IFC geometry pass for Forma-only models (bigger job), or rely on the Revit plugin export for boxes?
 - A legacy project-scoped Autodesk token row remains for Cedar Park MOB (now unused). Delete it? (`DELETE FROM integration_tokens WHERE provider='aps' AND kind='three_legged' AND project_id IS NOT NULL`)
 - Answered Nov 20: license→Apache-2.0, OpenSpace→API, camera→ONE X2, hosts→2025–2027, fixtures→public IFC, repo→VDC-Austin-KA/Fauxel
 - **Build sprint scheduled task has no push access to VDC-Austin-KA/Fauxel** (its git proxy only allows authorized repos; the Nov 20 sprint's M4.3 slice was applied and pushed from KA's main session as e509b7f). Fix: recreate the sprint task from a chat that has the repo attached, or grant the repo to scheduled runs
@@ -107,7 +110,7 @@ Job heartbeat for long stitches; row locking between CV processing and human che
 ## Scheduled tasks
 | Task | Schedule (America/Chicago) | ID | State |
 |---|---|---|---|
-| Fauxel morning build: finishes open work, full stack shakedown on real data, then the roadmap; replaces "Fauxel Daily" and the build sprint | Daily, morning | — | active, no repo push access (commits land on KA's PC) |
+| Fauxel morning build: finishes open work, full stack shakedown on real data, then the roadmap; replaces "Fauxel Daily" and the build sprint | Daily, morning | — | active, pushes from KA's PC |
 | Fauxel Daily | Daily 1:17 PM | trig_01DzJPeYofrffjdJatV4xSWg | replaced by the morning build |
 | Fauxel build sprint | Tue + Fri 1:17 PM | trig_018XatVShzJ5uCt9YrEUwLfZ | disabled (replaced) |
 | Fauxel ecosystem watch: weekly dependency/API/license check, updates ecosystem-watch.md | Mon 5:37 AM | — | not created (blocked by the approval check; KA to approve) |

@@ -43,6 +43,7 @@ export default function Viewer() {
   const [layout, setLayout] = useState<Layout>(() => { try { return (localStorage.getItem("fauxel.viewerLayout") as Layout) || "split"; } catch { return "split"; } });
   const pickLayout = (l: Layout) => { setLayout(l); try { localStorage.setItem("fauxel.viewerLayout", l); } catch { /* private mode */ } };
   const [selected, setSelected] = useState<string | null>(null);
+  const [panelMin, setPanelMin] = useState(false); // collapsed element panel: viewers stay fully visible on small screens
   const pending = useRef<{ frameId?: string; x?: number } | null>(null);
   const [, force] = useState(0);
 
@@ -180,7 +181,7 @@ export default function Viewer() {
   const sel = selected ? elementMap.get(selected) : undefined;
 
   return (
-    <div className={`flex flex-col gap-3 ${selected ? "lg:mr-[24rem]" : ""}`}>
+    <div className={`flex flex-col gap-3 ${selected && !panelMin ? "lg:mr-[24rem]" : ""}`}>
       <PageHeader title="Reality viewer" sub={`${level?.name ?? ""} · ${capture ? labelOf(capture) : ""} · ${capture?.camera_model ?? ""}${capture?.rmse_m != null ? ` · alignment RMSE ${(capture.rmse_m * 1000).toFixed(0)} mm` : ""}`} />
 
       <Card pad={false}>
@@ -210,7 +211,7 @@ export default function Viewer() {
         </div>
       </Card>
 
-      <div className={`grid gap-3 ${layout === "split" || layout === "plan" ? "md:grid-cols-2" : ""}`}>
+      <div className={`grid gap-3 ${layout === "split" || layout === "plan" ? (selected && !panelMin ? "xl:grid-cols-2" : "md:grid-cols-2") : ""}`}>
         <div className={`${layout === "bim" ? "hidden" : ""} ${layout === "pano" ? "h-[68vh]" : "h-[46vh]"} min-h-[340px]`}>
           {framesQ.isPending ? <Loading /> : frames.length === 0 ? <EmptyState title="This capture has no frames yet" hint="Frames appear after keyframe extraction finishes." /> : (
             <PanoView bus={bus} imageUrl={img.data} compareUrl={compareOn ? cImg.data : undefined} wipe={wipe} onWipe={setWipe} overlay={overlay.data ?? []} overlayOn={overlayOn} elements={elementMap}
@@ -264,9 +265,14 @@ export default function Viewer() {
         </Card>
       </div>
 
-      {selected && (
+      {selected && panelMin && (
+        <button type="button" onClick={() => setPanelMin(false)} className="fixed bottom-4 right-4 z-30 max-w-xs truncate rounded-full bg-slate-900 px-4 py-2 text-sm text-white shadow-lg" aria-label="Show element panel">
+          ◂ {sel?.name ?? "Element"}
+        </button>
+      )}
+      {selected && !panelMin && (
         <div className="fixed bottom-0 right-0 top-14 z-30 w-full max-w-sm border-l border-slate-200 shadow-2xl">
-          <ElementPanel uid={selected} onClose={() => setSelected(null)} onOpenEvidence={(fid, cid) => {
+          <ElementPanel uid={selected} onClose={() => setSelected(null)} onMinimize={() => setPanelMin(true)} onLook={sel ? () => lookAt(sel) : undefined} onOpenEvidence={(fid, cid) => {
             const c = caps.data!.find((x) => x.id === cid);
             if (!c) return;
             if (c.level_id !== levelId) setLevelId(c.level_id);
