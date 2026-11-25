@@ -225,7 +225,8 @@ export const api = {
   apsStatus: (pid: string) => request<ApsStatus>("GET", `/integrations/aps/status${qs({ project_id: pid })}`),
   apsLogin: (pid: string) => request<{ authorize_url: string }>("GET", `/integrations/aps/login${qs({ project_id: pid, json: "true" })}`),
   apsMockConnect: (pid: string) => request<unknown>("POST", "/integrations/aps/mock-connect", { project_id: pid }),
-  apsCreateProject: (b: { hub_id: string; aps_project_id: string; name: string }) => request<Project & { existing: boolean }>("POST", "/integrations/aps/projects", b),
+  apsCreateProject: (b: { hub_id: string; aps_project_id: string; name: string; relink?: boolean }) =>
+    request<Project & { existing: boolean; moved_from?: { id: string; name: string } }>("POST", "/integrations/aps/projects", b),
   apsHubs: (pid?: string) => request<JsonApiItem[]>("GET", `/integrations/aps/hubs${pid ? `?project_id=${pid}` : ""}`),
   apsProjects: (hub: string, pid?: string) => request<JsonApiItem[]>("GET", `/integrations/aps/hubs/${encodeURIComponent(hub)}/projects${pid ? `?project_id=${pid}` : ""}`),
   apsConfig: (pid: string) => request<ApsConfig>("GET", `/projects/${pid}/aps/config`),

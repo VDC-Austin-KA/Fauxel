@@ -54,9 +54,15 @@ function AddFromForma({ onClose }: { onClose: () => void }) {
   const [hub, setHub] = useState(""); const [proj, setProj] = useState(""); const [name, setName] = useState("");
   const hubs = useQuery({ queryKey: ["aps", "hubs"], queryFn: () => api.apsHubs(), enabled: signedIn, retry: false });
   const projs = useQuery({ queryKey: ["aps", "projects", hub], queryFn: () => api.apsProjects(hub), enabled: signedIn && !!hub, retry: false });
+  const [linked, setLinked] = useState<{ id: string; name: string } | null>(null);
   const make = useMutation({
-    mutationFn: () => api.apsCreateProject({ hub_id: hub, aps_project_id: proj, name: name.trim() }),
-    onSuccess: (p) => { qc.invalidateQueries({ queryKey: ["projects"] }); nav(`/p/${p.id}/settings#autodesk`); },
+    mutationFn: (relink: boolean) => api.apsCreateProject({ hub_id: hub, aps_project_id: proj, name: name.trim(), relink }),
+    onSuccess: (p) => {
+      // Already linked to another Fauxel project (often a demo one): say where, and let the person choose. Never jump silently.
+      if (p.existing) { setLinked({ id: p.id, name: p.name }); return; }
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      nav(`/p/${p.id}/settings#autodesk`);
+    },
   });
   const login = async () => { window.location.href = (await api.apsLogin("")).authorize_url; };
   return (
@@ -67,21 +73,31 @@ function AddFromForma({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
             <label className="flex flex-col gap-1 text-xs text-slate-500">Hub
-              <select className={field} value={hub} onChange={(e) => { setHub(e.target.value); setProj(""); }} aria-label="Autodesk hub">
+              <select className={field} value={hub} onChange={(e) => { setHub(e.target.value); setProj(""); setLinked(null); }} aria-label="Autodesk hub">
                 <option value="">{hubs.isPending ? "Loading hubs…" : hubs.data?.length ? "Select a hub" : "No hubs (Forma admin must add the app)"}</option>
                 {hubs.data?.map((h) => <option key={h.id} value={h.id}>{itemName(h)}</option>)}
               </select></label>
             <label className="flex flex-col gap-1 text-xs text-slate-500">Forma project
               <select className={field} value={proj} disabled={!hub} aria-label="Autodesk project"
-                onChange={(e) => { setProj(e.target.value); const p = projs.data?.find((x) => x.id === e.target.value); if (p) setName(itemName(p)); }}>
+                onChange={(e) => { setLinked(null); setProj(e.target.value); const p = projs.data?.find((x) => x.id === e.target.value); if (p) setName(itemName(p)); }}>
                 <option value="">{projs.isPending && hub ? "Loading projects…" : "Select a project"}</option>
                 {projs.data?.map((p) => <option key={p.id} value={p.id}>{itemName(p)}</option>)}
               </select></label>
             <label className="flex flex-col gap-1 text-xs text-slate-500">Fauxel project name
               <input className={field} value={name} onChange={(e) => setName(e.target.value)} maxLength={200} aria-label="Fauxel project name" /></label>
-            <Button variant="primary" disabled={!hub || !proj || !name.trim() || make.isPending} onClick={() => make.mutate()}>{make.isPending ? "Creating…" : "Create and open"}</Button>
+            <Button variant="primary" disabled={!hub || !proj || !name.trim() || make.isPending} onClick={() => { setLinked(null); make.mutate(false); }}>{make.isPending ? "Creating…" : "Create and open"}</Button>
           </div>
         )}
+      {linked && (
+        <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
+          This Forma project is already linked to <b>{linked.name}</b>.
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button variant="primary" disabled={!name.trim() || make.isPending} onClick={() => make.mutate(true)}>Create "{name.trim()}" and move the link there</Button>
+            <Button onClick={() => nav(`/p/${linked.id}/settings#autodesk`)}>Open {linked.name}</Button>
+          </div>
+          <p className="mt-1.5 text-xs text-amber-800">Moving keeps one Fauxel project per Forma project. Models already imported into {linked.name} stay there.</p>
+        </div>
+      )}
       {(hubs.error || projs.error || make.error) && <div className="mt-2"><ErrorState error={hubs.error ?? projs.error ?? make.error} /></div>}
       <p className="mt-2 text-xs text-slate-500">Creates a Fauxel project linked to the Forma project (or reopens it if one exists) and opens its Autodesk card, where you import the models.</p>
     </Card>

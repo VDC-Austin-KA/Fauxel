@@ -211,6 +211,7 @@ class FromApsIn(BaseModel):
     hub_id: str = Field(min_length=1, max_length=200)
     aps_project_id: str = Field(min_length=1, max_length=200)
     name: str = Field(min_length=1, max_length=200)
+    relink: bool = False   # already linked elsewhere: make a new project and move the link to it
 
 
 @router.post("/integrations/aps/projects", status_code=201)
@@ -218,10 +219,15 @@ def create_from_aps(body: FromApsIn, conn=Depends(get_conn, scope="function")):
     """Create (or reopen) the Fauxel project linked to one Autodesk Forma project."""
     hit = conn.execute("SELECT project_id FROM project_integrations WHERE provider = %s AND config->>'aps_project_id' = %s "
                        "ORDER BY updated_at DESC LIMIT 1", (PROVIDER, body.aps_project_id)).fetchone()
-    if hit:
+    if hit and not body.relink:
         return JSONResponse(_json.loads(_json.dumps({**get_project(conn, hit["project_id"]), "existing": True}, default=str)), status_code=200)
     proj = conn.execute("INSERT INTO projects (name, description) VALUES (%s, %s) RETURNING *",
                         (body.name, "Linked to Autodesk Forma")).fetchone()
+    if hit:   # move the whole link (it holds this Forma project's ids and mappings); one Fauxel project per Forma project
+        old = get_project(conn, hit["project_id"])
+        conn.execute("UPDATE project_integrations SET project_id = %s, updated_at = now() WHERE project_id = %s AND provider = %s",
+                     (proj["id"], old["id"], PROVIDER))
+        return {**proj, "existing": False, "moved_from": {"id": str(old["id"]), "name": old["name"]}}
     conn.execute("INSERT INTO project_integrations (project_id, provider, config) VALUES (%s,%s,%s)",
                  (proj["id"], PROVIDER, Jsonb({"hub_id": body.hub_id, "aps_project_id": body.aps_project_id})))
     return {**proj, "existing": False}

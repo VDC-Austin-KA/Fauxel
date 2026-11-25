@@ -136,6 +136,15 @@ def test_login_callback_status_and_encrypted_storage(app_client, db):
     assert fid in [p["id"] for p in c.get("/api/v1/projects").json()]
     assert c.post("/api/v1/integrations/aps/projects", json={**body, "name": ""}).status_code == 422
 
+    # already linked (e.g. to a demo project): relink makes a new project and moves the link there, keeping one owner
+    moved = c.post("/api/v1/integrations/aps/projects", json={**body, "name": "Bastrop DC (real)", "relink": True})
+    assert moved.status_code == 201 and moved.json()["moved_from"] == {"id": fid, "name": "Bastrop DC (Forma)"}
+    nid = moved.json()["id"]
+    assert nid != fid and c.get(f"/api/v1/projects/{nid}/aps/config").json()["aps_project_id"] == "b.proj-forma-1"
+    assert c.get(f"/api/v1/projects/{fid}/aps/config").json() == {}
+    reopen = c.post("/api/v1/integrations/aps/projects", json=body)
+    assert reopen.status_code == 200 and reopen.json()["id"] == nid
+
 
 @respx.mock
 def test_expired_token_is_refreshed_and_rotated(app_client, db):
